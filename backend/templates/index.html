@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BincNote</title>
+</head>
+<body>
+    <div id="root">
+        <p style="font-family:sans-serif;padding:2rem">Carregando BincNote…</p>
+    </div>
+    {% if debug %}
+    <script type="module">
+        import { injectIntoGlobalHook } from "http://127.0.0.1:5173/@react-refresh";
+        injectIntoGlobalHook(() => {});
+        window.$RefreshReg$ = () => {};
+        window.$RefreshSig$ = () => (type) => type;
+    </script>
+    <script type="module" src="http://127.0.0.1:5173/src/main.tsx"></script>
+    {% else %}
+    <script type="module" src="/static/dist/assets/index.js"></script>
+    {% endif %}
+</body>
+</html>
