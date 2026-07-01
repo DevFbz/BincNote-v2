@@ -182,6 +182,7 @@ export function Layout() {
             arvore={arvore.data ?? []}
             onAddSubpagina={adicionarSubpagina}
             onExcluirPagina={excluirPagina}
+            onRefetch={() => arvore.refetch()}
           />
         </div>
 
