@@ -68,6 +68,15 @@ class RecordListView(generics.ListCreateAPIView):
         db_id = self.kwargs.get("db_id")
         return Record.objects.filter(database_id=db_id, excluido_em__isnull=True)
 
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        data["database"] = self.kwargs.get("db_id")
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=201, headers=headers)
+
 
 class RecordDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Record.objects.all()
