@@ -59,6 +59,7 @@ export function BoardView({ databaseId }: { databaseId: number }) {
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
   const [inputText, setInputText] = useState("");
+  const [overId, setOverId] = useState<string | null>(null);
 
   // Find the title and status fields from the database
   const tituloField = db?.fields?.find((f) => f.kind === "text" || f.kind === "title");
@@ -136,8 +137,14 @@ export function BoardView({ databaseId }: { databaseId: number }) {
     if (card) setActiveCard(card);
   }
 
+  function handleDragOver(event: DragOverEvent) {
+    const { over } = event;
+    setOverId(over ? String(over.id) : null);
+  }
+
   function handleDragEnd(event: DragEndEvent) {
     setActiveCard(null);
+    setOverId(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -194,14 +201,15 @@ export function BoardView({ databaseId }: { databaseId: number }) {
       </div>
 
       {/* Board */}
-      <div className="flex-1 overflow-auto p-5">
+      <div className="flex-1 overflow-y-auto p-5">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
-          <div className="flex gap-4 h-full items-start min-w-max">
+          <div className="grid grid-cols-4 gap-4 h-full items-start">
             {DEFAULT_COLUMNS.map((col) => (
               <Column
                 key={col.id}
@@ -209,6 +217,7 @@ export function BoardView({ databaseId }: { databaseId: number }) {
                 cards={getCardsByColumn(col.id)}
                 isAdding={addingTo === col.id}
                 inputText={inputText}
+                overId={overId}
                 onInputChange={setInputText}
                 onStartAdd={() => { setInputText(""); setAddingTo(col.id); }}
                 onConfirmAdd={() => handleAddCard(col.id)}
@@ -243,6 +252,7 @@ function Column({
   isAdding,
   inputText,
   onInputChange,
+  overId,
   onStartAdd,
   onConfirmAdd,
   onCancelAdd,
@@ -252,6 +262,7 @@ function Column({
   cards: BoardCard[];
   isAdding: boolean;
   inputText: string;
+  overId: string | null;
   onInputChange: (t: string) => void;
   onStartAdd: () => void;
   onConfirmAdd: () => void;
@@ -260,7 +271,7 @@ function Column({
 }) {
   return (
     <div
-      className="w-72 shrink-0 flex flex-col rounded-xl border max-h-full"
+      className="flex flex-col rounded-xl border max-h-full min-w-0"
       style={{ background: column.bg, borderColor: column.border }}
     >
       {/* Header */}
@@ -290,6 +301,7 @@ function Column({
             <DraggableCard
               key={card.id}
               card={card}
+              overId={overId}
               onDelete={() => onDelete(card.id)}
             />
           ))}
@@ -352,9 +364,11 @@ function Column({
 // ── Draggable Card ───────────────────────────────────────────────────
 function DraggableCard({
   card,
+  overId,
   onDelete,
 }: {
   card: BoardCard;
+  overId: string | null;
   onDelete: () => void;
 }) {
   const {
@@ -366,6 +380,7 @@ function DraggableCard({
     isDragging,
   } = useSortable({ id: String(card.id) });
 
+  const isOverTarget = overId === String(card.id) && !isDragging;
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -376,10 +391,14 @@ function DraggableCard({
     <div
       ref={setNodeRef}
       style={style}
-      className="p-3 rounded-xl bg-[#2a2a2a] border border-[#3a3a3a] hover:border-[#555] transition-colors cursor-grab active:cursor-grabbing group"
+      className="p-3 rounded-xl bg-[#2a2a2a] border border-[#3a3a3a] hover:border-[#555] transition-colors cursor-grab active:cursor-grabbing group relative"
       {...attributes}
       {...listeners}
     >
+      {/* Blue drop indicator line */}
+      {isOverTarget && (
+        <div className="absolute -top-1 left-0 right-0 h-0.5 bg-[#3b82f6] rounded-full shadow-[0_0_6px_#3b82f688] z-10" />
+      )}
       <div className="flex items-start gap-2">
         <GripVertical
           size={14}
