@@ -1,9 +1,10 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
   DragOverlay,
   closestCorners,
+  pointerWithin,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -20,11 +21,12 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Trash2, FileText, GripVertical } from "lucide-react";
+import { Plus, Trash2, FileText, GripVertical, MessageSquare } from "lucide-react";
 
 import { api } from "../api/cliente";
 import { useRecords, useDatabaseDetail, getValorTexto, getCell } from "../api/grids";
-import type { Record as GridRecord } from "../api/grids";
+import type { Record as GridRecord, Field } from "../api/grids";
+import { CardDetailPanel } from "./CardDetailPanel";
 
 // ── Column config ────────────────────────────────────────────────────
 const DEFAULT_COLUMNS = [
@@ -74,6 +76,17 @@ export function BoardView({ databaseId }: { databaseId: number }) {
   );
   const [pendingCardCol, setPendingCardCol] = useState<Record<number, string>>({});
 
+  // ── Column-local card order (for same-column reordering) ──────────
+  // Key = status name, value = ordered array of card IDs
+  const [cardOrder, setCardOrder] = useState<Record<string, number[]>>({});
+
+  // Detail panel
+  const [detailRecordId, setDetailRecordId] = useState<number | null>(null);
+  const detailRecord = useMemo(
+    () => records?.find((r) => r.id === detailRecordId) ?? null,
+    [records, detailRecordId]
+  );
+
   const tituloField = db?.fields?.find((f) => f.kind === "text" || f.kind === "title");
   const statusField = db?.fields?.find((f) => f.kind === "select");
   const tituloFieldId = tituloField?.id ?? 0;
@@ -104,12 +117,24 @@ export function BoardView({ databaseId }: { databaseId: number }) {
     [resolvedCards, pendingCardCol]
   );
 
+  // Apply column-local card order when available
   const getCardsByColumn = useCallback(
     (colId: string) => {
       const statusName = COLUMN_STATUS_MAP[colId];
-      return allCards.filter((c) => c.status === statusName);
+      let filtered = allCards.filter((c) => c.status === statusName);
+      const orderKey = statusName;
+      const orderArr = cardOrder[orderKey];
+      if (orderArr && orderArr.length > 0) {
+        const ordered = orderArr
+          .map((id) => filtered.find((c) => c.id === id))
+          .filter(Boolean) as BoardCard[];
+        // Append any new cards not yet in the order list
+        const orderedIds = new Set(ordered.map((c) => c.id));
+        filtered = [...ordered, ...filtered.filter((c) => !orderedIds.has(c.id))];
+      }
+      return filtered;
     },
-    [allCards]
+    [allCards, cardOrder]
   );
 
   const sortedColumns = useMemo(
@@ -175,16 +200,33 @@ export function BoardView({ databaseId }: { databaseId: number }) {
     return card ? REVERSE_STATUS_MAP[card.status] ?? null : null;
   }
 
-  function resolveDropColumn(overId: string, cardId?: number): string | null {
+  function resolveDropColumn(overId: string): string | null {
     if (COLUMN_STATUS_MAP[overId]) return overId;
     const overCard = allCards.find((c) => c.id === Number(overId));
     if (overCard) return REVERSE_STATUS_MAP[overCard.status] ?? null;
     return null;
   }
 
+  /** Reorder a card within the same column. */
+  function reorderSameColumn(
+    activeId: number,
+    overId: string,
+    colCards: BoardCard[]
+  ) {
+    const statusName = colCards[0]?.status;
+    if (!statusName) return;
+    const ids = colCards.map((c) => c.id);
+    const fromIdx = ids.indexOf(activeId);
+    const toIdx = ids.indexOf(Number(overId));
+    if (fromIdx === -1 || toIdx === -1) return;
+    const newIds = [...ids];
+    newIds.splice(fromIdx, 1);
+    newIds.splice(toIdx, 0, activeId);
+    setCardOrder((prev) => ({ ...prev, [statusName]: newIds }));
+  }
+
   // ── Drag handlers ────────────────────────────────────────────────
   function handleDragStart(event: DragStartEvent) {
-    // Card
     const card = allCards.find((c) => c.id === Number(event.active.id));
     if (card) setActiveCard(card);
   }
@@ -194,20 +236,16 @@ export function BoardView({ databaseId }: { databaseId: number }) {
     if (!over) { setOverId(null); return; }
 
     const overIdStr = String(over.id);
-    // Blue line indicator: show only when over another card
     if (COLUMN_STATUS_MAP[overIdStr] || !allCards.find((c) => c.id === Number(overIdStr))) {
       setOverId(null);
     } else {
       setOverId(overIdStr);
     }
 
-    // Column reorder — no card logic needed
     if (active.data.current?.type === "column") return;
 
-    // Card crossing columns — preview the move
     const activeCol = findColumnOfCard(Number(active.id));
     const overCol = resolveDropColumn(overIdStr);
-
     if (!activeCol || !overCol || activeCol === overCol) return;
 
     const cardId = Number(active.id);
@@ -236,13 +274,22 @@ export function BoardView({ databaseId }: { databaseId: number }) {
 
     // ── Card drop ─────────────────────────────────────────────────
     const cardId = Number(active.id);
-    const targetColId = resolveDropColumn(String(over.id), cardId);
+    const targetColId = resolveDropColumn(String(over.id));
     if (!targetColId) { setPendingCardCol({}); return; }
 
     const newStatus = COLUMN_STATUS_MAP[targetColId];
     const card = resolvedCards.find((c) => c.id === cardId);
-    if (!card || card.status === newStatus) { setPendingCardCol({}); return; }
+    if (!card) { setPendingCardCol({}); return; }
 
+    // Same column → reorder only
+    if (card.status === newStatus) {
+      const colCards = getCardsByColumn(targetColId);
+      reorderSameColumn(cardId, String(over.id), colCards);
+      setPendingCardCol({});
+      return;
+    }
+
+    // Different column → update status
     updateStatus.mutate({ recordId: cardId, newStatus });
   }
 
@@ -263,59 +310,75 @@ export function BoardView({ databaseId }: { databaseId: number }) {
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <div className="flex flex-col h-full" style={{ background: "var(--bg-app)" }}>
-      {/* Header */}
-      <div className="flex items-center gap-2 px-6 py-3 border-b shrink-0" style={{ borderColor: "#2e2e2e" }}>
-        <h2 className="font-semibold text-sm text-[#ffffff]">
-          {db?.nome ?? "Quadro Kanban"}
-        </h2>
-        <span className="text-xs text-[#999]">
-          {allCards.length} {allCards.length === 1 ? "cartão" : "cartões"}
-        </span>
+    <div className="flex h-full" style={{ background: "var(--bg-app)" }}>
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Header */}
+        <div className="flex items-center gap-2 px-6 py-3 border-b shrink-0" style={{ borderColor: "#2e2e2e" }}>
+          <h2 className="font-semibold text-sm text-[#ffffff]">
+            {db?.nome ?? "Quadro Kanban"}
+          </h2>
+          <span className="text-xs text-[#999]">
+            {allCards.length} {allCards.length === 1 ? "cartão" : "cartões"}
+          </span>
+        </div>
+
+        {/* Board */}
+        <div className="flex-1 overflow-y-auto p-5">
+          <DndContext
+            sensors={sensors}
+            collisionDetection={pointerWithin}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="grid grid-cols-4 gap-4 items-start">
+              <SortableContext
+                items={columnOrder}
+                strategy={horizontalListSortingStrategy}
+              >
+                {sortedColumns.map((col) => (
+                  <ColumnContainer
+                    key={col.id}
+                    column={col}
+                    cards={getCardsByColumn(col.id)}
+                    isAdding={addingTo === col.id}
+                    inputText={inputText}
+                    overId={overId}
+                    activeCardId={activeCard?.id ?? null}
+                    onInputChange={setInputText}
+                    onStartAdd={() => { setInputText(""); setAddingTo(col.id); }}
+                    onConfirmAdd={() => handleAddCard(col.id)}
+                    onCancelAdd={() => setAddingTo(null)}
+                    onDelete={handleDeleteCard}
+                    onCardClick={(id) => setDetailRecordId(id)}
+                  />
+                ))}
+              </SortableContext>
+            </div>
+
+            <DragOverlay>
+              {activeCard ? (
+                <div className="w-72 rounded-xl bg-[#2d2d2d] border-2 border-[#3b82f688] shadow-2xl shadow-black/60 opacity-95">
+                  <CardContent card={activeCard} />
+                </div>
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </div>
       </div>
 
-      {/* Board — grid layout, no horizontal scroll */}
-      <div className="flex-1 overflow-y-auto p-5">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="grid grid-cols-4 gap-4 h-full items-start">
-            <SortableContext
-              items={columnOrder}
-              strategy={horizontalListSortingStrategy}
-            >
-              {sortedColumns.map((col) => (
-                <ColumnContainer
-                  key={col.id}
-                  column={col}
-                  cards={getCardsByColumn(col.id)}
-                  isAdding={addingTo === col.id}
-                  inputText={inputText}
-                  overId={overId}
-                  activeCardId={activeCard?.id ?? null}
-                  onInputChange={setInputText}
-                  onStartAdd={() => { setInputText(""); setAddingTo(col.id); }}
-                  onConfirmAdd={() => handleAddCard(col.id)}
-                  onCancelAdd={() => setAddingTo(null)}
-                  onDelete={handleDeleteCard}
-                />
-              ))}
-            </SortableContext>
-          </div>
-
-          <DragOverlay>
-            {activeCard ? (
-              <div className="w-full rounded-xl bg-[#2d2d2d] border-2 border-[#3b82f688] shadow-2xl shadow-black/60 opacity-95">
-                <CardContent card={activeCard} />
-              </div>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      </div>
+      {/* Detail Panel */}
+      {detailRecord && (
+        <CardDetailPanel
+          record={detailRecord}
+          fields={db?.fields}
+          databaseId={databaseId}
+          onClose={() => setDetailRecordId(null)}
+          onRefresh={() => {
+            queryClient.invalidateQueries({ queryKey: ["records", databaseId] });
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -333,6 +396,7 @@ function ColumnContainer({
   onConfirmAdd,
   onCancelAdd,
   onDelete,
+  onCardClick,
 }: {
   column: ColumnDef;
   cards: BoardCard[];
@@ -345,6 +409,7 @@ function ColumnContainer({
   onConfirmAdd: () => void;
   onCancelAdd: () => void;
   onDelete: (id: number) => void;
+  onCardClick: (id: number) => void;
 }) {
   const {
     attributes,
@@ -358,8 +423,11 @@ function ColumnContainer({
     data: { type: "column" },
   });
 
-  // Make card-list area droppable so empty columns accept cards
-  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: column.id });
+  // Separate droppable ID from the sortable ID to avoid conflict
+  const { setNodeRef: setDropRef, isOver } = useDroppable({
+    id: `drop-${column.id}`,
+    data: { columnId: column.id },
+  });
 
   const colStyle = {
     transform: CSS.Transform.toString(transform),
@@ -374,7 +442,7 @@ function ColumnContainer({
     <div
       ref={setColRef}
       style={colStyle}
-      className={`flex flex-col rounded-xl overflow-hidden transition-shadow duration-200 min-w-0 ${
+      className={`flex flex-col rounded-xl overflow-hidden transition-shadow duration-200 min-w-0 w-full ${
         isHighlighted ? "ring-2 ring-[#3b82f6]" : "shadow-sm"
       }`}
       data-col-id={column.id}
@@ -402,7 +470,7 @@ function ColumnContainer({
       {/* Card List */}
       <div
         ref={setDropRef}
-        className={`flex-1 overflow-y-auto p-2 space-y-1.5 transition-all duration-200 ${
+        className={`flex-1 overflow-y-auto p-2 space-y-1.5 transition-all duration-200 min-w-0 ${
           isHighlighted ? "bg-[#3b82f610]" : ""
         }`}
         style={{
@@ -419,6 +487,7 @@ function ColumnContainer({
                 card={card}
                 overId={overId}
                 onDelete={() => onDelete(card.id)}
+                onClick={() => onCardClick(card.id)}
               />
             ))}
           </SortableContext>
@@ -428,7 +497,6 @@ function ColumnContainer({
           </div>
         )}
 
-        {/* Add input */}
         {isAdding && (
           <div className="p-2 rounded-lg" style={{ background: column.border }}>
             <input
@@ -484,10 +552,12 @@ function DraggableCard({
   card,
   overId,
   onDelete,
+  onClick,
 }: {
   card: BoardCard;
   overId: string | null;
   onDelete: () => void;
+  onClick: () => void;
 }) {
   const {
     attributes,
@@ -507,11 +577,19 @@ function DraggableCard({
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="group" {...attributes} {...listeners}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="group"
+      {...attributes}
+      {...listeners}
+    >
       {isOverTarget && (
         <div className="absolute -top-[3px] left-2 right-2 h-[3px] bg-[#3b82f6] rounded-full shadow-[0_0_8px_#3b82f6cc] z-10" />
       )}
-      <CardContent card={card} onDelete={onDelete} />
+      <div onClick={(e) => { e.stopPropagation(); onClick(); }}>
+        <CardContent card={card} onDelete={onDelete} />
+      </div>
     </div>
   );
 }
@@ -519,26 +597,26 @@ function DraggableCard({
 // ── Card Content ─────────────────────────────────────────────────────
 function CardContent({ card, onDelete }: { card: BoardCard; onDelete?: () => void }) {
   return (
-    <div className="px-3 py-2.5 rounded-xl bg-[#2d2d2d] border border-[#3d3d3d] hover:border-[#555] transition-colors cursor-grab active:cursor-grabbing">
-      <div className="flex items-start gap-3">
+    <div className="px-2.5 py-1.5 rounded-lg bg-[#2d2d2d] border border-[#3d3d3d] hover:border-[#555] transition-colors cursor-grab active:cursor-grabbing">
+      <div className="flex items-start gap-2">
         <div className="shrink-0 pt-0.5">
-          <FileText size={16} className="text-[#b0b0b0]" />
+          <FileText size={13} className="text-[#b0b0b0]" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-[#ffffff] leading-snug break-words whitespace-pre-wrap">
+          <div className="text-[13px] font-semibold text-[#ffffff] leading-snug break-words whitespace-pre-wrap">
             {card.titulo}
           </div>
-          <div className="text-xs text-[#b0b0b0] leading-snug mt-0.5 italic">
+          <div className="text-[11px] text-[#b0b0b0] leading-snug mt-0.5">
             {card.status}
           </div>
         </div>
         {onDelete && (
           <button
             onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDelete(); }}
-            className="p-1 rounded text-[#555] hover:text-[#ef4444] hover:bg-[#3a1a1a] opacity-0 group-hover:opacity-100 transition-all shrink-0"
+            className="p-0.5 rounded text-[#555] hover:text-[#ef4444] hover:bg-[#3a1a1a] opacity-0 group-hover:opacity-100 transition-all shrink-0 self-center"
             title="Excluir"
           >
-            <Trash2 size={13} />
+            <Trash2 size={11} />
           </button>
         )}
       </div>

@@ -244,11 +244,14 @@ function ItemArvore({
 
       {/* Right-click context menu */}
       {ctxMenu && (
-        <div
-          ref={ctxRef}
-          className="fixed z-50 w-44 py-1 rounded-xl bg-[#252525] border border-[#3a3a3a] shadow-2xl shadow-black/50 backdrop-blur-sm"
-          style={{ left: ctxMenu.x, top: ctxMenu.y }}
-        >
+        <>
+          {/* Invisible overlay to catch clicks outside */}
+          <div className="fixed inset-0 z-[9998]" onClick={() => setCtxMenu(null)} />
+          <div
+            ref={ctxRef}
+            className="fixed z-[9999] w-44 py-1 rounded-xl bg-[#252525] border border-[#3a3a3a] shadow-2xl shadow-black/50 backdrop-blur-sm"
+            style={{ left: ctxMenu.x, top: ctxMenu.y }}
+          >
           <button
             onClick={startRename}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#e0e0e0] hover:bg-[#333] transition-colors"
@@ -270,6 +273,7 @@ function ItemArvore({
             Excluir
           </button>
         </div>
+      </>
       )}
 
       {/* Children */}
