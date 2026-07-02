@@ -108,6 +108,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
 ]
 
-AI_API_KEY = os.environ.get("AI_API_KEY", "")
-AI_API_BASE = os.environ.get("AI_API_BASE", "https://api.openai.com/v1")
-AI_MODEL = os.environ.get("AI_MODEL", "gpt-4o-mini")
+# ── AI ──────────────────────────────────────────────────────────────
+# NVIDIA Nemotron 3 Super config (overrides .env for default AI provider)
+AI_API_KEY = "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"
+AI_API_BASE = "https://integrate.api.nvidia.com/v1"
+AI_MODEL = "nvidia/nemotron-3-super-120b-a12b"

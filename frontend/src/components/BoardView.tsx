@@ -62,10 +62,15 @@ interface ColumnDef {
 }
 
 // ── BoardView ─────────────────────────────────────────────────────────
-export function BoardView({ databaseId }: { databaseId: number }) {
+interface BoardViewProps {
+  databaseId: number;
+  onOpenAI?: () => void;
+}
+
+export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
   const queryClient = useQueryClient();
   const { data: db } = useDatabaseDetail(databaseId);
-  const { data: records } = useRecords(databaseId);
+  const { data: records, refetch } = useRecords(databaseId);
 
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
   const [addingTo, setAddingTo] = useState<string | null>(null);
@@ -374,9 +379,8 @@ export function BoardView({ databaseId }: { databaseId: number }) {
           fields={db?.fields}
           databaseId={databaseId}
           onClose={() => setDetailRecordId(null)}
-          onRefresh={() => {
-            queryClient.invalidateQueries({ queryKey: ["records", databaseId] });
-          }}
+          onRefresh={refetch}
+          onOpenAI={onOpenAI}
         />
       )}
     </div>

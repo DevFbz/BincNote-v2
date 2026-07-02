@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { X, FileText, MessageSquare } from "lucide-react";
+import { X, FileText, MessageSquare, Sparkles } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../api/cliente";
@@ -7,14 +7,15 @@ import { getCell, getValorTexto } from "../api/grids";
 import type { Record as GridRecord, Field } from "../api/grids";
 
 interface Props {
-  record: GridRecord | null;
+  record: GridRecord;
   fields?: Field[];
   databaseId: number;
   onClose: () => void;
-  onRefresh?: () => void;
+  onRefresh: () => void;
+  onOpenAI?: () => void;
 }
 
-export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh }: Props) {
+export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh, onOpenAI }: Props) {
   const tituloField = fields?.find((f) => f.kind === "text" || f.kind === "title");
   const statusField = fields?.find((f) => f.kind === "select");
   const tituloFieldId = tituloField?.id ?? 0;
@@ -146,22 +147,29 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
           borderLeft: "1px solid #2e2e2e",
         }}
       >
-        {/* Header */}
-        <div
-          className="flex items-center justify-between px-5 py-3 shrink-0 border-b"
-          style={{ borderColor: "#2e2e2e" }}
-        >
-          <div className="flex items-center gap-2">
-            <FileText size={14} className="text-[#888]" />
-            <span className="text-[11px] text-[#888]">ID: {record?.id ?? "—"}</span>
+        <div className="flex items-center justify-between px-5 py-3 shrink-0 border-b" style={{ borderColor: "#2e2e2e" }}>
+            <div className="flex items-center gap-2">
+              <FileText size={14} className="text-[#888]" />
+              <span className="text-[11px] text-[#888]">ID: {record.id}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              {onOpenAI && (
+                <button
+                  onClick={onOpenAI}
+                  className="p-1.5 rounded-lg hover:bg-[#2e2e2e] text-[#888] hover:text-[#a8dcff] transition-colors"
+                  title="Assistente IA"
+                >
+                  <Sparkles size={16} />
+                </button>
+              )}
+              <button
+                onClick={handleClose}
+                className="p-1 rounded-md text-[#888] hover:text-[#fff] hover:bg-[#2e2e2e] transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-1 rounded-md text-[#888] hover:text-[#fff] hover:bg-[#2e2e2e] transition-colors"
-          >
-            <X size={16} />
-          </button>
-        </div>
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-6">

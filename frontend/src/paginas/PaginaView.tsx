@@ -538,7 +538,7 @@ export function PaginaView({ id }: { id: number }) {
           {/* Main editor */}
           {pagina.kind === "database" ? (
             <div className="flex-1 min-h-[400px]">
-              <BoardView databaseId={dbId ?? 0} />
+              <BoardView databaseId={dbId ?? 0} onOpenAI={() => setAiAberto(true)} />
             </div>
           ) : !mostrarTemplates && (
             <div className="min-h-[300px]">
