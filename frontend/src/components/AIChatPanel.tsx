@@ -142,7 +142,7 @@ export function AIChatPanel({ isOpen, onClose, paginaId, paginaTitulo, onApplyCo
 
       {/* Panel */}
       <div
-        className="absolute top-0 right-0 bottom-0 w-[360px] max-w-[85vw] bg-[#1e1e1e] border-l border-[#2e2e2e] shadow-2xl flex flex-col pointer-events-auto animate-slide-in"
+        className="absolute top-0 right-0 bottom-0 w-[320px] max-w-[85vw] bg-[#1e1e1e] border-l border-[#2e2e2e] shadow-2xl flex flex-col pointer-events-auto animate-slide-in"
         style={{ animation: "slideIn 0.2s ease-out" }}
       >
         {/* Header */}
@@ -207,7 +207,7 @@ export function AIChatPanel({ isOpen, onClose, paginaId, paginaTitulo, onApplyCo
         )}
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-2.5 space-y-2.5">
+        <div className="flex-1 overflow-y-auto p-2 space-y-2">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-center px-4">
               <Wand2 size={32} className="text-[#a8dcff] mb-3 opacity-50" />
@@ -226,7 +226,7 @@ export function AIChatPanel({ isOpen, onClose, paginaId, paginaTitulo, onApplyCo
                 className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-xl px-3 py-2.5 text-sm leading-relaxed ${
+                  className={`max-w-[85%] rounded-lg px-2.5 py-1.5 text-sm leading-snug ${
                     msg.role === "user"
                       ? "bg-[#a8dcff]/20 text-[#fff] rounded-br-sm"
                       : "bg-[#2a2a2a] text-[#ddd] rounded-bl-sm border border-[#3a3a3a]"

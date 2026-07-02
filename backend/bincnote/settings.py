@@ -109,7 +109,7 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 # ── AI ──────────────────────────────────────────────────────────────
-# NVIDIA Nemotron 3 Super config (overrides .env for default AI provider)
-AI_API_KEY = "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"
-AI_API_BASE = "https://integrate.api.nvidia.com/v1"
-AI_MODEL = "nvidia/nemotron-3-super-120b-a12b"
+# NVIDIA Nemotron 3 Super config (reads from .env with hardcoded fallback)
+AI_API_KEY = os.environ.get("AI_API_KEY", "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")
+AI_API_BASE = os.environ.get("AI_API_BASE", "https://integrate.api.nvidia.com/v1")
+AI_MODEL = os.environ.get("AI_MODEL", "nvidia/nemotron-3-super-120b-a12b")
