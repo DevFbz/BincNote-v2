@@ -142,7 +142,7 @@ export function AIChatPanel({ isOpen, onClose, paginaId, paginaTitulo, onApplyCo
 
       {/* Panel */}
       <div
-        className="absolute top-0 right-0 bottom-0 w-[320px] max-w-[85vw] bg-[#1e1e1e] border-l border-[#2e2e2e] shadow-2xl flex flex-col pointer-events-auto animate-slide-in"
+        className="absolute top-0 right-0 bottom-0 w-[360px] max-w-[85vw] bg-[#1e1e1e] border-l border-[#2e2e2e] shadow-2xl flex flex-col pointer-events-auto animate-slide-in"
         style={{ animation: "slideIn 0.2s ease-out" }}
       >
         {/* Header */}
