@@ -78,8 +78,18 @@ export function PaginaView({ id }: { id: number }) {
   const [mostrarTemplates, setMostrarTemplates] = useState(false);
   const [abrirPainelTemplates, setAbrirPainelTemplates] = useState(false);
   const [aiAberto, setAiAberto] = useState(false);
+  const [selectedText, setSelectedText] = useState<string>("");
   const [showParticular, setShowParticular] = useState(false);
   const [showPageMenu, setShowPageMenu] = useState(false);
+
+  // Listen for text selection from CardDetailPanel
+  useEffect(() => {
+    const handleSelection = (event: CustomEvent<string>) => {
+      setSelectedText(event.detail);
+    };
+    window.addEventListener('card-text-selected', handleSelection as EventListener);
+    return () => window.removeEventListener('card-text-selected', handleSelection as EventListener);
+  }, []);
 
   // Handler functions for page menu
     const renomear = () => {
@@ -565,6 +575,7 @@ export function PaginaView({ id }: { id: number }) {
           onClose={() => setAiAberto(false)}
           paginaId={id}
           paginaTitulo={pagina?.titulo ?? ""}
+          selectedText={selectedText}
           onApplyContent={(content) => {
             // Convert AI markdown-like content into a TipTap document
             const tiptapDoc = {

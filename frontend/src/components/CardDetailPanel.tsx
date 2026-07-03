@@ -256,6 +256,28 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
               </button>
             </div>
           </div>
+
+          {/* Anotações / Notes field */}
+          <div className="mt-6">
+            <div className="text-[10px] font-medium text-[#888] uppercase tracking-wider mb-2">
+              Anotações
+            </div>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Escreva suas anotações aqui..."
+              rows={10}
+              className="w-full bg-[#2a2a2a] border border-[#3a3a3a] rounded-lg px-3 py-2 text-sm text-[#ddd] placeholder-[#555] outline-none resize-none focus:border-[#3b82f6] transition-colors"
+              onSelect={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                const selected = target.value.substring(target.selectionStart, target.selectionEnd);
+                if (selected.trim()) {
+                  // Emit selection to parent for AI context
+                  window.dispatchEvent(new CustomEvent('card-text-selected', { detail: selected }));
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
     </>

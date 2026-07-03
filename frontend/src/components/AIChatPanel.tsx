@@ -25,9 +25,21 @@ interface AIChatPanelProps {
   paginaId?: number;
   paginaTitulo?: string;
   onApplyContent?: (content: string) => void;
+  activeCardId?: number | null;
+  activeCardTitle?: string;
+  selectedText?: string;
 }
 
-export function AIChatPanel({ isOpen, onClose, paginaId, paginaTitulo, onApplyContent }: AIChatPanelProps) {
+export function AIChatPanel({ 
+  isOpen, 
+  onClose, 
+  paginaId, 
+  paginaTitulo, 
+  onApplyContent,
+  activeCardId,
+  activeCardTitle,
+  selectedText
+}: AIChatPanelProps) {
   const qc = useQueryClient();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -134,52 +146,57 @@ export function AIChatPanel({ isOpen, onClose, paginaId, paginaTitulo, onApplyCo
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none">
-      {/* Backdrop */}
+      {/* Backdrop - only for click outside handling, but we won't close on click outside */}
       <div
-        className="absolute inset-0 bg-black/20 pointer-events-auto"
-        onClick={onClose}
+        className="absolute inset-0 bg-transparent pointer-events-auto"
+        onClick={(e) => e.stopPropagation()}
       />
 
-      {/* Panel */}
+      {/* Floating Panel - fixed height, positioned near top-right */}
       <div
-        className="absolute top-0 right-0 bottom-0 w-[360px] max-w-[85vw] bg-[#1e1e1e] border-l border-[#2e2e2e] shadow-2xl flex flex-col pointer-events-auto animate-slide-in"
+        className="absolute top-16 right-4 w-[360px] max-w-[90vw] h-[calc(100vh-80px)] max-h-[calc(100vh-80px)] bg-[#1e1e1e] border border-[#2e2e2e] rounded-xl shadow-2xl flex flex-col pointer-events-auto animate-slide-in"
         style={{ animation: "slideIn 0.2s ease-out" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#2e2e2e] shrink-0">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#a8dcff] to-[#8b5cf6] flex items-center justify-center">
-              <Sparkles size={12} className="text-white" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-xs font-semibold text-[#ffffff]">Assistente IA</h3>
-              {paginaTitulo && (
-                <p className="text-[11px] text-[#888] truncate">
-                  em "{paginaTitulo}"
-                </p>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => {
-                setConversaId(null);
-                setShowArchived(false);
-                createConversa.mutate();
-              }}
-              className="p-1.5 rounded-lg hover:bg-[#2e2e2e] text-[#888] hover:text-[#fff] transition-colors"
-              title="Nova conversa"
-            >
-              <RotateCcw size={15} />
-            </button>
-            <button
-              onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-[#2e2e2e] text-[#888] hover:text-[#fff] transition-colors"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
+                <div className="flex items-center justify-between px-3 py-2.5 border-b border-[#2e2e2e] shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#a8dcff] to-[#8b5cf6] flex items-center justify-center">
+                      <Sparkles size={12} className="text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="text-xs font-semibold text-[#ffffff]">Assistente IA</h3>
+                      {activeCardTitle && (
+                        <p className="text-[11px] text-[#a8dcff] truncate">
+                          {activeCardTitle}
+                        </p>
+                      )}
+                      {selectedText && (
+                        <p className="text-[10px] text-[#888] truncate italic">
+                          Texto selecionado: {selectedText.slice(0, 40)}{selectedText.length > 40 ? "…" : ""}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => {
+                        setConversaId(null);
+                        setShowArchived(false);
+                        createConversa.mutate();
+                      }}
+                      className="p-1.5 rounded-lg hover:bg-[#2e2e2e] text-[#888] hover:text-[#fff] transition-colors"
+                      title="Nova conversa"
+                    >
+                      <RotateCcw size={15} />
+                    </button>
+                    <button
+                      onClick={onClose}
+                      className="p-1.5 rounded-lg hover:bg-[#2e2e2e] text-[#888] hover:text-[#fff] transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
 
         {/* Conversation selector (when conversations exist) */}
         {!showArchived && conversations && conversations.length > 1 && (
