@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
@@ -9,10 +9,6 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  useDroppable,
-  type DragStartEvent,
-  type DragEndEvent,
-  type DragOverEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -73,37 +69,24 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
   const { data: records, refetch } = useRecords(databaseId);
 
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
-    const [addingTo, setAddingTo] = useState<string | null>(null);
-    const [inputText, setInputText] = useState("");
-    const [overId, setOverId] = useState<string | null>(null);
-    const [columnOrder, setColumnOrder] = useState<string[]>(
-      DEFAULT_COLUMNS.map((c) => c.id)
-    );
-    const [pendingCardCol, setPendingCardCol] = useState<Record<number, string>>({});
+  const [addingTo, setAddingTo] = useState<string | null>(null);
+  const [inputText, setInputText] = useState("");
+  const [overId, setOverId] = useState<string | null>(null);
+  const [columnOrder, setColumnOrder] = useState<string[]>(
+    DEFAULT_COLUMNS.map((c) => c.id)
+  );
+  const [pendingCardCol, setPendingCardCol] = useState<Record<number, string>>({});
 
-    // ── Column-local card order (for same-column reordering) ──────────
-    // Key = status name, value = ordered array of card IDs
-    const [cardOrder, setCardOrder] = useState<Record<string, number[]>>({});
+  // ── Column-local card order (for same-column reordering) ──────────
+  // Key = status name, value = ordered array of card IDs
+  const [cardOrder, setCardOrder] = useState<Record<string, number[]>>({});
 
-    // Detail panel
-    const [detailRecordId, setDetailRecordId] = useState<number | null>(null);
-    const detailRecord = useMemo(
-      () => records?.find((r) => r.id === detailRecordId) ?? null,
-      [records, detailRecordId]
-    );
+  const tituloField = db?.fields?.find((f) => f.kind === "text" || f.kind === "title");
+  const statusField = db?.fields?.find((f) => f.kind === "select");
+  const tituloFieldId = tituloField?.id ?? 0;
+  const statusFieldId = statusField?.id ?? 0;
 
-    // Marquee selection state
-    const [selectionBox, setSelectionBox] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-    const [selectedCardIds, setSelectedCardIds] = useState<Set<number>>(new Set());
-    const [isSelecting, setIsSelecting] = useState(false);
-        const boardRef = useRef<HTMLDivElement>(null);
-
-        const tituloField = db?.fields?.find((f) => f.kind === "text" || f.kind === "title");
-        const statusField = db?.fields?.find((f) => f.kind === "select");
-        const tituloFieldId = tituloField?.id ?? 0;
-        const statusFieldId = statusField?.id ?? 0;
-
-        const sensors = useSensors(
+  const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor)
   );
@@ -118,7 +101,6 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
     [records, tituloFieldId, statusFieldId]
   );
 
-  // Merge resolved + pending moves for live visual feedback during drag
   const allCards: BoardCard[] = useMemo(
     () =>
       resolvedCards.map((c) => ({
@@ -128,7 +110,6 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
     [resolvedCards, pendingCardCol]
   );
 
-  // Apply column-local card order when available
   const getCardsByColumn = useCallback(
     (colId: string) => {
       const statusName = COLUMN_STATUS_MAP[colId];
@@ -237,12 +218,12 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
   }
 
   // ── Drag handlers ────────────────────────────────────────────────
-  function handleDragStart(event: DragStartEvent) {
+  function handleDragStart(event: any) {
     const card = allCards.find((c) => c.id === Number(event.active.id));
     if (card) setActiveCard(card);
   }
 
-  function handleDragOver(event: DragOverEvent) {
+  function handleDragOver(event: any) {
     const { active, over } = event;
     if (!over) { setOverId(null); return; }
 
@@ -263,7 +244,7 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
     setPendingCardCol((prev) => ({ ...prev, [cardId]: COLUMN_STATUS_MAP[overCol] }));
   }
 
-  function handleDragEnd(event: DragEndEvent) {
+  function handleDragEnd(event: any) {
     setActiveCard(null);
     setOverId(null);
 
@@ -284,109 +265,28 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
     }
 
     // ── Card drop ─────────────────────────────────────────────────
-        const cardId = Number(active.id);
-        const targetColId = resolveDropColumn(String(over.id));
-        if (!targetColId) { setPendingCardCol({}); return; }
+    const cardId = Number(active.id);
+    const targetColId = resolveDropColumn(String(over.id));
+    if (!targetColId) { setPendingCardCol({}); return; }
 
-        const newStatus = COLUMN_STATUS_MAP[targetColId];
-        const card = resolvedCards.find((c) => c.id === cardId);
-        if (!card) { setPendingCardCol({}); return; }
+    const newStatus = COLUMN_STATUS_MAP[targetColId];
+    const card = resolvedCards.find((c) => c.id === cardId);
+    if (!card) { setPendingCardCol({}); return; }
 
-        // Same column → reorder only
-        if (card.status === newStatus) {
-          const colCards = getCardsByColumn(targetColId);
-          reorderSameColumn(cardId, String(over.id), colCards);
-          setPendingCardCol({});
-          return;
-        }
+    // Same column → reorder only
+    if (card.status === newStatus) {
+      const colCards = getCardsByColumn(targetColId);
+      reorderSameColumn(cardId, String(over.id), colCards);
+      setPendingCardCol({});
+      return;
+    }
 
-        // Different column → update status
-        updateStatus.mutate({ recordId: cardId, newStatus });
-      }
+    // Different column → update status
+    updateStatus.mutate({ recordId: cardId, newStatus });
+  }
 
-      // ── Marquee selection handlers ──────────────────────────────────
-      function handleMouseDown(event: React.MouseEvent<HTMLDivElement>) {
-        // Only start selection on empty background (not on cards, columns, etc.)
-        const target = event.target as HTMLElement;
-        if (target.closest('[data-col-id], [data-render-drag="true"], .card, button, input, textarea')) {
-          return;
-        }
-    
-        if (event.button !== 0) return; // Only left click
-    
-        const rect = boardRef.current?.getBoundingClientRect();
-        if (!rect) return;
-    
-        const startX = event.clientX - rect.left;
-        const startY = event.clientY - rect.top;
-    
-        setSelectionBox({ x: startX, y: startY, width: 0, height: 0 });
-        setIsSelecting(true);
-        setSelectedCardIds(new Set());
-    
-        // Prevent default drag behavior
-        event.preventDefault();
-      }
-
-      function handleMouseMove(moveEvent: React.MouseEvent<HTMLDivElement>) {
-              const rect = boardRef.current?.getBoundingClientRect();
-              if (!rect) return;
-
-              const currentX = moveEvent.clientX - rect.left;
-              const currentY = moveEvent.clientY - rect.top;
-
-              if (!isSelecting) return;
-
-              setSelectionBox((prev) => {
-                if (!prev) return prev;
-                return {
-                  x: Math.min(prev.x, currentX),
-                  y: Math.min(prev.y, currentY),
-                  width: Math.abs(currentX - prev.x),
-                  height: Math.abs(currentY - prev.y),
-                };
-              });
-            }
-
-      function handleMouseUp() {
-        if (!isSelecting || !selectionBox) {
-          setIsSelecting(false);
-          setSelectionBox(null);
-          return;
-        }
-    
-        // Check which cards are inside the selection box
-        const newSelected = new Set<number>();
-        const cards = allCards;
-        const boardRect = boardRef.current?.getBoundingClientRect();
-    
-        if (boardRect && selectionBox) {
-          cards.forEach((card) => {
-            const cardElement = document.querySelector(`[data-card-id="${card.id}"]`);
-            if (cardElement) {
-              const cardRect = cardElement.getBoundingClientRect();
-              const cardCenterX = cardRect.left + cardRect.width / 2 - boardRect.left;
-              const cardCenterY = cardRect.top + cardRect.height / 2 - boardRect.top;
-          
-              if (
-                cardCenterX >= selectionBox.x &&
-                cardCenterX <= selectionBox.x + selectionBox.width &&
-                cardCenterY >= selectionBox.y &&
-                cardCenterY <= selectionBox.y + selectionBox.height
-              ) {
-                newSelected.add(card.id);
-              }
-            }
-          });
-        }
-    
-        setSelectedCardIds(newSelected);
-        setSelectionBox(null);
-        setIsSelecting(false);
-      }
-
-      // ── Card actions ─────────────────────────────────────────────────
-      async function handleAddCard(columnId: string) {
+  // ── Card actions ─────────────────────────────────────────────────
+  async function handleAddCard(columnId: string) {
     if (!inputText.trim()) return;
     const statusName = COLUMN_STATUS_MAP[columnId];
     addRecord.mutate({ titulo: inputText.trim(), status: statusName });
@@ -415,20 +315,8 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
         </div>
 
         {/* Board */}
-                <div className="flex-1 overflow-y-auto p-5" ref={boardRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
-                  {/* Marquee selection box */}
-                  {selectionBox && (
-                    <div
-                      className="fixed pointer-events-none z-50 border-2 border-dashed border-[#3b82f6] bg-[#3b82f6]/10"
-                      style={{
-                        left: selectionBox.x,
-                        top: selectionBox.y,
-                        width: selectionBox.width,
-                        height: selectionBox.height,
-                      }}
-                    />
-                  )}
-                  <DndContext
+        <div className="flex-1 overflow-y-auto p-5">
+          <DndContext
             sensors={sensors}
             collisionDetection={pointerWithin}
             onDragStart={handleDragStart}
@@ -486,171 +374,13 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
   );
 }
 
-// ── Column Container ─────────────────────────────────────────────────
-function ColumnContainer({
-  column,
-  cards,
-  isAdding,
-  inputText,
-  overId,
-  activeCardId,
-  onInputChange,
-  onStartAdd,
-  onConfirmAdd,
-  onCancelAdd,
-  onDelete,
-  onCardClick,
-}: {
-  column: ColumnDef;
-  cards: BoardCard[];
-  isAdding: boolean;
-  inputText: string;
-  overId: string | null;
-  activeCardId: number | null;
-  onInputChange: (t: string) => void;
-  onStartAdd: () => void;
-  onConfirmAdd: () => void;
-  onCancelAdd: () => void;
-  onDelete: (id: number) => void;
-  onCardClick: (id: number) => void;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef: setColRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({
-    id: column.id,
-    data: { type: "column" },
-  });
-
-  // Separate droppable ID from the sortable ID to avoid conflict
-  const { setNodeRef: setDropRef, isOver } = useDroppable({
-    id: `drop-${column.id}`,
-    data: { columnId: column.id },
-  });
-
-  const colStyle = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const isHighlighted = isOver && activeCardId !== null;
-  const cardIds = cards.map((c) => String(c.id));
-
-  return (
-    <div
-      ref={setColRef}
-      style={colStyle}
-      className={`flex flex-col rounded-xl overflow-hidden transition-shadow duration-200 min-w-0 w-full ${
-        isHighlighted ? "ring-2 ring-[#3b82f6]" : "shadow-sm"
-      }`}
-      data-col-id={column.id}
-    >
-      {/* Column Header */}
-      <div
-        className="flex items-center gap-2 px-3 py-2.5 cursor-grab active:cursor-grabbing select-none"
-        style={{ background: column.bg, borderBottom: `1px solid ${column.border}` }}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical size={12} className="text-[#555] shrink-0" />
-        <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: column.dot }} />
-        <span className="text-sm font-semibold text-[#ffffff] flex-1 truncate">
-          {column.nome}
-        </span>
-        <span
-          className="text-xs text-[#aaa] px-1.5 py-0.5 rounded-full min-w-[22px] text-center font-medium"
-          style={{ background: column.border }}
-        >
-          {cards.length}
-        </span>
-      </div>
-
-      {/* Card List */}
-      <div
-        ref={setDropRef}
-        className={`flex-1 overflow-y-auto p-2 space-y-1.5 transition-all duration-200 min-w-0 ${
-          isHighlighted ? "bg-[#3b82f610]" : ""
-        }`}
-        style={{
-          background: isHighlighted ? undefined : column.bg,
-          borderLeft: `1px solid ${column.border}`,
-          borderRight: `1px solid ${column.border}`,
-        }}
-      >
-        {cardIds.length > 0 ? (
-          <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
-            {cards.map((card) => (
-              <DraggableCard
-                key={card.id}
-                card={card}
-                overId={overId}
-                onDelete={() => onDelete(card.id)}
-                onClick={() => onCardClick(card.id)}
-              />
-            ))}
-          </SortableContext>
-        ) : (
-          <div className="text-[11px] text-[#666] text-center py-6 select-none">
-            {isHighlighted ? "Solte aqui" : "Vazio"}
-          </div>
-        )}
-
-        {isAdding && (
-          <div className="p-2 rounded-lg" style={{ background: column.border }}>
-            <input
-              autoFocus
-              value={inputText}
-              onChange={(e) => onInputChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") onConfirmAdd();
-                if (e.key === "Escape") onCancelAdd();
-              }}
-              placeholder="Título do cartão…"
-              className="w-full bg-transparent outline-none text-sm text-[#ffffff] placeholder-[#777] mb-2"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                onClick={onConfirmAdd}
-                className="flex-1 px-2 py-1 rounded text-xs font-medium text-white"
-                style={{ background: column.dot }}
-              >
-                Adicionar
-              </button>
-              <button
-                onClick={onCancelAdd}
-                className="p-1 rounded text-[#888] hover:text-[#ffffff] hover:bg-black/20 transition-colors"
-              >
-                <span className="text-sm">✕</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      {!isAdding && (
-        <button
-          onClick={onStartAdd}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm text-[#aaa] hover:text-[#ffffff] hover:bg-[#ffffff08] transition-colors"
-          style={{
-            background: column.bg,
-            borderTop: `1px solid ${column.border}`,
-          }}
-        >
-          <Plus size={14} />
-          Nova página
-        </button>
-      )}
-    </div>
-  );
+// ── Helper ────────────────────────────────────────────────────────────
+function getSelectValue(record: GridRecord, fieldId: number): string | null {
+  const c = getCell(record, fieldId);
+  return c?.valor?.label ?? null;
 }
 
-// ── Draggable Card ───────────────────────────────────────────────────
+// ── Draggable Card ────────────────────────────────────────────────────
 function DraggableCard({
   card,
   overId,
@@ -690,7 +420,7 @@ function DraggableCard({
       {isOverTarget && (
         <div className="absolute -top-[3px] left-2 right-2 h-[3px] bg-[#3b82f6] rounded-full shadow-[0_0_8px_#3b82f6cc] z-10" />
       )}
-      <div onClick={(e) => { e.stopPropagation(); onClick(); }}>
+      <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClick(); }}>
         <CardContent card={card} onDelete={onDelete} />
       </div>
     </div>
@@ -727,7 +457,7 @@ function CardContent({ card, onDelete }: { card: BoardCard; onDelete?: () => voi
   );
 }
 
-// ── Helper ───────────────────────────────────────────────────────────
+// ── Helper ────────────────────────────────────────────────────────────
 function getSelectValue(record: GridRecord, fieldId: number): string | null {
   const c = getCell(record, fieldId);
   return c?.valor?.label ?? null;
