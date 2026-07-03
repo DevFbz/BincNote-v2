@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
@@ -21,7 +21,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Trash2, FileText, GripVertical, MessageSquare } from "lucide-react";
+import { Plus, Trash2, FileText, GripVertical, MessageSquare, Check } from "lucide-react";
 
 import { api } from "../api/cliente";
 import { useRecords, useDatabaseDetail, getValorTexto, getCell } from "../api/grids";
@@ -73,31 +73,37 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
   const { data: records, refetch } = useRecords(databaseId);
 
   const [activeCard, setActiveCard] = useState<BoardCard | null>(null);
-  const [addingTo, setAddingTo] = useState<string | null>(null);
-  const [inputText, setInputText] = useState("");
-  const [overId, setOverId] = useState<string | null>(null);
-  const [columnOrder, setColumnOrder] = useState<string[]>(
-    DEFAULT_COLUMNS.map((c) => c.id)
-  );
-  const [pendingCardCol, setPendingCardCol] = useState<Record<number, string>>({});
+    const [addingTo, setAddingTo] = useState<string | null>(null);
+    const [inputText, setInputText] = useState("");
+    const [overId, setOverId] = useState<string | null>(null);
+    const [columnOrder, setColumnOrder] = useState<string[]>(
+      DEFAULT_COLUMNS.map((c) => c.id)
+    );
+    const [pendingCardCol, setPendingCardCol] = useState<Record<number, string>>({});
 
-  // ── Column-local card order (for same-column reordering) ──────────
-  // Key = status name, value = ordered array of card IDs
-  const [cardOrder, setCardOrder] = useState<Record<string, number[]>>({});
+    // ── Column-local card order (for same-column reordering) ──────────
+    // Key = status name, value = ordered array of card IDs
+    const [cardOrder, setCardOrder] = useState<Record<string, number[]>>({});
 
-  // Detail panel
-  const [detailRecordId, setDetailRecordId] = useState<number | null>(null);
-  const detailRecord = useMemo(
-    () => records?.find((r) => r.id === detailRecordId) ?? null,
-    [records, detailRecordId]
-  );
+    // Detail panel
+    const [detailRecordId, setDetailRecordId] = useState<number | null>(null);
+    const detailRecord = useMemo(
+      () => records?.find((r) => r.id === detailRecordId) ?? null,
+      [records, detailRecordId]
+    );
 
-  const tituloField = db?.fields?.find((f) => f.kind === "text" || f.kind === "title");
-  const statusField = db?.fields?.find((f) => f.kind === "select");
-  const tituloFieldId = tituloField?.id ?? 0;
-  const statusFieldId = statusField?.id ?? 0;
+    // Marquee selection state
+    const [selectionBox, setSelectionBox] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+    const [selectedCardIds, setSelectedCardIds] = useState<Set<number>>(new Set());
+    const [isSelecting, setIsSelecting] = useState(false);
+        const boardRef = useRef<HTMLDivElement>(null);
 
-  const sensors = useSensors(
+        const tituloField = db?.fields?.find((f) => f.kind === "text" || f.kind === "title");
+        const statusField = db?.fields?.find((f) => f.kind === "select");
+        const tituloFieldId = tituloField?.id ?? 0;
+        const statusFieldId = statusField?.id ?? 0;
+
+        const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor)
   );
@@ -278,28 +284,109 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
     }
 
     // ── Card drop ─────────────────────────────────────────────────
-    const cardId = Number(active.id);
-    const targetColId = resolveDropColumn(String(over.id));
-    if (!targetColId) { setPendingCardCol({}); return; }
+        const cardId = Number(active.id);
+        const targetColId = resolveDropColumn(String(over.id));
+        if (!targetColId) { setPendingCardCol({}); return; }
 
-    const newStatus = COLUMN_STATUS_MAP[targetColId];
-    const card = resolvedCards.find((c) => c.id === cardId);
-    if (!card) { setPendingCardCol({}); return; }
+        const newStatus = COLUMN_STATUS_MAP[targetColId];
+        const card = resolvedCards.find((c) => c.id === cardId);
+        if (!card) { setPendingCardCol({}); return; }
 
-    // Same column → reorder only
-    if (card.status === newStatus) {
-      const colCards = getCardsByColumn(targetColId);
-      reorderSameColumn(cardId, String(over.id), colCards);
-      setPendingCardCol({});
-      return;
-    }
+        // Same column → reorder only
+        if (card.status === newStatus) {
+          const colCards = getCardsByColumn(targetColId);
+          reorderSameColumn(cardId, String(over.id), colCards);
+          setPendingCardCol({});
+          return;
+        }
 
-    // Different column → update status
-    updateStatus.mutate({ recordId: cardId, newStatus });
-  }
+        // Different column → update status
+        updateStatus.mutate({ recordId: cardId, newStatus });
+      }
 
-  // ── Card actions ─────────────────────────────────────────────────
-  async function handleAddCard(columnId: string) {
+      // ── Marquee selection handlers ──────────────────────────────────
+      function handleMouseDown(event: React.MouseEvent<HTMLDivElement>) {
+        // Only start selection on empty background (not on cards, columns, etc.)
+        const target = event.target as HTMLElement;
+        if (target.closest('[data-col-id], [data-render-drag="true"], .card, button, input, textarea')) {
+          return;
+        }
+    
+        if (event.button !== 0) return; // Only left click
+    
+        const rect = boardRef.current?.getBoundingClientRect();
+        if (!rect) return;
+    
+        const startX = event.clientX - rect.left;
+        const startY = event.clientY - rect.top;
+    
+        setSelectionBox({ x: startX, y: startY, width: 0, height: 0 });
+        setIsSelecting(true);
+        setSelectedCardIds(new Set());
+    
+        // Prevent default drag behavior
+        event.preventDefault();
+      }
+
+      function handleMouseMove(moveEvent: React.MouseEvent<HTMLDivElement>) {
+              const rect = boardRef.current?.getBoundingClientRect();
+              if (!rect) return;
+
+              const currentX = moveEvent.clientX - rect.left;
+              const currentY = moveEvent.clientY - rect.top;
+
+              if (!isSelecting) return;
+
+              setSelectionBox((prev) => {
+                if (!prev) return prev;
+                return {
+                  x: Math.min(prev.x, currentX),
+                  y: Math.min(prev.y, currentY),
+                  width: Math.abs(currentX - prev.x),
+                  height: Math.abs(currentY - prev.y),
+                };
+              });
+            }
+
+      function handleMouseUp() {
+        if (!isSelecting || !selectionBox) {
+          setIsSelecting(false);
+          setSelectionBox(null);
+          return;
+        }
+    
+        // Check which cards are inside the selection box
+        const newSelected = new Set<number>();
+        const cards = allCards;
+        const boardRect = boardRef.current?.getBoundingClientRect();
+    
+        if (boardRect && selectionBox) {
+          cards.forEach((card) => {
+            const cardElement = document.querySelector(`[data-card-id="${card.id}"]`);
+            if (cardElement) {
+              const cardRect = cardElement.getBoundingClientRect();
+              const cardCenterX = cardRect.left + cardRect.width / 2 - boardRect.left;
+              const cardCenterY = cardRect.top + cardRect.height / 2 - boardRect.top;
+          
+              if (
+                cardCenterX >= selectionBox.x &&
+                cardCenterX <= selectionBox.x + selectionBox.width &&
+                cardCenterY >= selectionBox.y &&
+                cardCenterY <= selectionBox.y + selectionBox.height
+              ) {
+                newSelected.add(card.id);
+              }
+            }
+          });
+        }
+    
+        setSelectedCardIds(newSelected);
+        setSelectionBox(null);
+        setIsSelecting(false);
+      }
+
+      // ── Card actions ─────────────────────────────────────────────────
+      async function handleAddCard(columnId: string) {
     if (!inputText.trim()) return;
     const statusName = COLUMN_STATUS_MAP[columnId];
     addRecord.mutate({ titulo: inputText.trim(), status: statusName });
@@ -328,8 +415,20 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
         </div>
 
         {/* Board */}
-        <div className="flex-1 overflow-y-auto p-5">
-          <DndContext
+                <div className="flex-1 overflow-y-auto p-5" ref={boardRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp}>
+                  {/* Marquee selection box */}
+                  {selectionBox && (
+                    <div
+                      className="fixed pointer-events-none z-50 border-2 border-dashed border-[#3b82f6] bg-[#3b82f6]/10"
+                      style={{
+                        left: selectionBox.x,
+                        top: selectionBox.y,
+                        width: selectionBox.width,
+                        height: selectionBox.height,
+                      }}
+                    />
+                  )}
+                  <DndContext
             sensors={sensors}
             collisionDetection={pointerWithin}
             onDragStart={handleDragStart}
