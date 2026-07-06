@@ -7,31 +7,7 @@
 /* BincNote - Notion-like Design System */
 
 :root {
-  color-scheme: light dark;
-  --bg-app: #ffffff;
-  --bg-sidebar: #f7f8fa;
-  --divider: #e2e5ea;
-  --txt: #37352f;
-  --txt-muted: #9b9b9b;
-  --txt-faint: #b3b3b3;
-  --accent: #6451e0;
-  --accent-hover: #513cc6;
-  --surface-1: #ffffff;
-  --surface-2: #f7f8fa;
-  --surface-3: #eef0f3;
-  --surface-4: #e2e5ea;
-  --surface-dark1: #2e2e2e;
-  --surface-dark2: #363636;
-  --surface-dark3: #3e3e3e;
-  --surface-dark4: #4a4a4a;
-  --danger: #e5484d;
-  --success: #30a46c;
-  --warning: #f5a623;
-  --card-shadow: 0 1px 3px rgba(0,0,0,0.06);
-  --pop-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-.dark {
+  color-scheme: dark;
   --bg-app: #191919;
   --bg-sidebar: #1e1e1e;
   --divider: #2e2e2e;

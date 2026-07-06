@@ -15,7 +15,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Trash2, FileText } from "lucide-react";
+import { Plus, Trash2, FileText, LayoutList, Kanban, Filter, ArrowDownUp, Search, Zap, ChevronDown } from "lucide-react";
 
 import type { Record as GridRecord } from "../api/grids";
 import { useDatabaseDetail, useRecords, getCell, getValorTexto } from "../api/grids";
@@ -106,31 +106,34 @@ function ColumnContainer({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex flex-col min-w-[240px] max-w-[240px] bg-[#252525] rounded-xl border border-[#2e2e2e] shadow-md"
+      className="flex flex-col flex-1 min-w-0 shrink-0"
     >
       {/* Column header */}
       <div
-        className="px-4 py-3 border-b border-[#2e2e2e] cursor-grab active:cursor-grabbing"
+        className="flex items-center justify-between mb-3 cursor-grab active:cursor-grabbing w-full"
         {...attributes}
         {...listeners}
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-sm text-[#ffffff]">{column.nome}</h3>
-            <p className="text-xs text-[#888]">{cards.length} {cards.length === 1 ? "cartão" : "cartões"}</p>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full" style={{ background: column.bg, border: `1px solid ${column.border}` }}>
+            <div className="w-2 h-2 rounded-full" style={{ background: column.dot }} />
+            <h3 className="font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: column.dot }}>{column.nome}</h3>
           </div>
+          <span className="text-xs text-txt-muted">{cards.length}</span>
+        </div>
+        <div className="flex gap-1">
           <button
             onClick={() => onStartAdd()}
-            className="p-1.5 rounded-lg bg-[#3b82f6] text-white hover:bg-[#2563eb] transition-colors"
-            title="Adicionar cartão"
+            className="p-1 rounded text-txt-muted hover:bg-surface-3 transition-colors"
+            title="Adicionar"
           >
-            <Plus size={16} />
+            <Plus size={14} />
           </button>
         </div>
       </div>
 
       {/* Cards list */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-[200px]">
+      <div className="flex flex-col gap-2 min-h-[10px]">
         <SortableContext items={cards.map((c) => String(c.id))}>
           {cards.map((card) => (
             <DraggableCard
@@ -175,6 +178,16 @@ function ColumnContainer({
               </button>
             </div>
           </div>
+        )}
+
+        {/* Add button at the bottom */}
+        {!isAdding && (
+          <button
+            onClick={onStartAdd}
+            className="flex items-center gap-2 px-2 py-1.5 mt-1 text-txt-muted hover:text-txt hover:bg-surface-2 rounded-md transition-colors text-sm w-full text-left"
+          >
+            <Plus size={14} /> Nova página
+          </button>
         )}
       </div>
     </div>
@@ -231,17 +244,14 @@ function DraggableCard({
 // ── Card Content ─────────────────────────────────────────────────────
 function CardContent({ card, onDelete }: { card: BoardCard; onDelete?: () => void }) {
   return (
-    <div className="px-2.5 py-1.5 rounded-lg bg-[#2d2d2d] border border-[#3d3d3d] hover:border-[#555] transition-colors cursor-grab active:cursor-grabbing">
+    <div className="px-3 py-2.5 rounded-lg bg-[#1e1e1e] border border-[#2e2e2e] hover:bg-[#252525] transition-colors cursor-grab active:cursor-grabbing shadow-sm flex items-center group">
       <div className="flex items-start gap-2">
         <div className="shrink-0 pt-0.5">
           <FileText size={13} className="text-[#b0b0b0]" />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-semibold text-[#ffffff] leading-snug break-words whitespace-pre-wrap">
+        <div className="flex-1 min-w-0 flex items-center">
+          <div className="text-[13px] font-medium text-txt leading-snug break-words whitespace-pre-wrap">
             {card.titulo}
-          </div>
-          <div className="text-[11px] text-[#b0b0b0] leading-snug mt-0.5">
-            {card.status}
           </div>
         </div>
         {onDelete && (
@@ -259,13 +269,15 @@ function CardContent({ card, onDelete }: { card: BoardCard; onDelete?: () => voi
 }
 
 // ── BoardView ─────────────────────────────────────────────────────────
-interface BoardViewProps {
+export function BoardView({
+  databaseId,
+  onOpenAI,
+}: {
   databaseId: number;
-  onOpenAI?: () => void;
-}
-
-export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
+  onOpenAI: () => void;
+}) {
   const queryClient = useQueryClient();
+  const [viewType, setViewType] = useState<"board" | "table">("board");
   const { data: db } = useDatabaseDetail(databaseId);
   const { data: records, refetch } = useRecords(databaseId);
 
@@ -502,61 +514,140 @@ export function BoardView({ databaseId, onOpenAI }: BoardViewProps) {
 
   // ── Render ───────────────────────────────────────────────────────
   return (
-    <div className="flex h-full" style={{ background: "var(--bg-app)" }}>
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* Header */}
-        <div className="flex items-center gap-2 px-6 py-3 border-b shrink-0" style={{ borderColor: "#2e2e2e" }}>
-          <h2 className="font-semibold text-sm text-[#ffffff]">
-            {db?.nome ?? "Quadro Kanban"}
-          </h2>
-          <span className="text-xs text-[#999]">
-            {allCards.length} {allCards.length === 1 ? "cartão" : "cartões"}
-          </span>
-        </div>
-
-        {/* Board */}
-        <div className="flex-1 overflow-x-auto overflow-y-auto p-5">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={pointerWithin}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-          >
-            <div className="flex gap-4 items-start w-max">
-              <SortableContext
-                items={columnOrder}
-                strategy={horizontalListSortingStrategy}
-              >
-                {sortedColumns.map((col) => (
-                  <ColumnContainer
-                    key={col.id}
-                    column={col}
-                    cards={getCardsByColumn(col.id)}
-                    isAdding={addingTo === col.id}
-                    inputText={inputText}
-                    overId={overId}
-                    onInputChange={setInputText}
-                    onStartAdd={() => { setInputText(""); setAddingTo(col.id); }}
-                    onConfirmAdd={() => handleAddCard(col.id)}
-                    onCancelAdd={() => setAddingTo(null)}
-                    onDelete={handleDeleteCard}
-                    onCardClick={(id) => setDetailRecordId(id)}
-                  />
-                ))}
-              </SortableContext>
-            </div>
-
-            <DragOverlay>
-              {activeCard ? (
-                <div className="w-60 rounded-xl bg-[#2d2d2d] border-2 border-[#3b82f688] shadow-2xl shadow-black/60 opacity-95">
-                  <CardContent card={activeCard} />
+    <div className="flex flex-col h-full bg-transparent">
+      {/* Top Toolbar */}
+      <div className="flex items-center justify-between pb-4 border-b border-surface-4 mb-4">
+        <div className="flex items-center gap-1 bg-surface-2 rounded-md p-0.5">
+                  <button
+                    id="view-toggle-table"
+                    onClick={() => setViewType("table")}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs transition-colors ${viewType === "table" ? "bg-surface-3 text-txt shadow-sm" : "text-txt-muted hover:text-txt hover:bg-surface-3"}`}
+                  >
+                    <LayoutList size={14} /> Tabela
+                  </button>
+                  <button
+                    id="view-toggle-board"
+                    onClick={() => setViewType("board")}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs transition-colors ${viewType === "board" ? "bg-surface-3 text-txt shadow-sm" : "text-txt-muted hover:text-txt hover:bg-surface-3"}`}
+                  >
+                    <Kanban size={14} /> Quadro
+                  </button>
                 </div>
-              ) : null}
-            </DragOverlay>
-          </DndContext>
+        <div className="flex items-center gap-1.5 text-txt-muted">
+          <button className="p-1.5 rounded hover:bg-surface-3 transition-colors"><Filter size={14} /></button>
+          <button className="p-1.5 rounded hover:bg-surface-3 transition-colors"><ArrowDownUp size={14} /></button>
+          <button className="p-1.5 rounded hover:bg-surface-3 transition-colors"><Zap size={14} /></button>
+          <button className="p-1.5 rounded hover:bg-surface-3 transition-colors"><Search size={14} /></button>
+          <div className="w-px h-4 bg-surface-4 mx-1" />
+          <button className="flex items-center gap-1 bg-accent text-white px-2 py-1.5 rounded text-xs font-medium hover:bg-accent-hover transition-colors ml-1">
+            Nova <ChevronDown size={14} />
+          </button>
         </div>
       </div>
+
+      {viewType === "board" ? (
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* Board */}
+          <div className="flex-1 overflow-hidden overflow-y-auto pb-6">
+            <DndContext
+              sensors={sensors}
+              collisionDetection={pointerWithin}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+            >
+              <div className="flex gap-4 items-start min-w-0">
+                <SortableContext
+                  items={columnOrder}
+                  strategy={horizontalListSortingStrategy}
+                >
+                  {sortedColumns.map((col) => (
+                    <ColumnContainer
+                      key={col.id}
+                      column={col}
+                      cards={getCardsByColumn(col.id)}
+                      isAdding={addingTo === col.id}
+                      inputText={inputText}
+                      overId={overId}
+                      onInputChange={setInputText}
+                      onStartAdd={() => { setInputText(""); setAddingTo(col.id); }}
+                      onConfirmAdd={() => handleAddCard(col.id)}
+                      onCancelAdd={() => setAddingTo(null)}
+                      onDelete={handleDeleteCard}
+                      onCardClick={(id) => setDetailRecordId(id)}
+                    />
+                  ))}
+                </SortableContext>
+              </div>
+
+              <DragOverlay>
+                {activeCard ? (
+                  <div className="w-60 rounded-xl bg-[#2d2d2d] border-2 border-[#3b82f688] shadow-2xl shadow-black/60 opacity-95">
+                    <CardContent card={activeCard} />
+                  </div>
+                ) : null}
+              </DragOverlay>
+            </DndContext>
+          </div>
+        </div>
+      ) : (
+        /* Table View */
+        <div id="table-view-container" className="flex-1 overflow-auto p-4">
+          <div id="table-view-grid" className="grid grid-cols-4 gap-4">
+            {sortedColumns.map((col) => (
+              <div id={`table-column-${col.id}`} key={col.id} className="flex flex-col min-w-0">
+                {/* Column header */}
+                <div id={`table-column-header-${col.id}`} className="flex items-center justify-between mb-3">
+                  <div id={`table-column-header-content-${col.id}`} className="flex items-center gap-2">
+                    <div id={`table-column-pill-${col.id}`} className="flex items-center gap-1.5 px-2 py-0.5 rounded-full" style={{ background: col.bg, border: `1px solid ${col.border}` }}>
+                      <div id={`table-column-dot-${col.id}`} className="w-2 h-2 rounded-full" style={{ background: col.dot }} />
+                      <h3 id={`table-column-title-${col.id}`} className="font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: col.dot }}>{col.nome}</h3>
+                    </div>
+                    <span id={`table-column-count-${col.id}`} className="text-xs text-txt-muted">{getCardsByColumn(col.id).length}</span>
+                  </div>
+                </div>
+                {/* Cards list */}
+                <div id={`table-column-cards-${col.id}`} className="flex flex-col gap-2 min-h-[10px]">
+                  {getCardsByColumn(col.id).map((card) => (
+                    <div
+                      id={`table-card-${card.id}`}
+                      key={card.id}
+                      className="px-3 py-2.5 rounded-lg bg-[#1e1e1e] border border-[#2e2e2e] hover:bg-[#252525] transition-colors cursor-pointer group"
+                      onClick={() => setDetailRecordId(card.id)}
+                    >
+                      <div id={`table-card-content-${card.id}`} className="flex items-start gap-2">
+                        <div id={`table-card-icon-wrapper-${card.id}`} className="shrink-0 pt-0.5">
+                          <FileText id={`table-card-icon-${card.id}`} size={13} className="text-[#b0b0b0]" />
+                        </div>
+                        <div id={`table-card-title-wrapper-${card.id}`} className="flex-1 min-w-0 flex items-center">
+                          <div id={`table-card-title-${card.id}`} className="text-[13px] font-medium text-txt leading-snug break-words whitespace-pre-wrap">
+                            {card.titulo}
+                          </div>
+                        </div>
+                        <button
+                          id={`table-card-delete-${card.id}`}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteCard(card.id); }}
+                          className="p-0.5 rounded text-[#555] hover:text-[#ef4444] hover:bg-[#3a1a1a] opacity-0 group-hover:opacity-100 transition-all shrink-0 self-center"
+                          title="Excluir"
+                        >
+                          <Trash2 id={`table-card-delete-icon-${card.id}`} size={11} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    id={`table-column-add-btn-${col.id}`}
+                    onClick={() => { setInputText(""); setAddingTo(col.id); }}
+                    className="flex items-center gap-2 px-2 py-1.5 mt-1 text-txt-muted hover:text-txt hover:bg-surface-2 rounded-md transition-colors text-sm w-full text-left"
+                  >
+                    <Plus id={`table-column-add-icon-${col.id}`} size={14} /> Nova página
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Detail Panel */}
       {detailRecord && (

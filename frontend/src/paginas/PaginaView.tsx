@@ -409,10 +409,10 @@ export function PaginaView({ id }: { id: number }) {
       </div>
 
       {/* Page content area */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-8 py-6">
+      <div className="flex-1 overflow-y-auto flex flex-col">
+        <div className="max-w-6xl mx-auto px-8 py-6 w-full shrink-0">
           {/* Title area with icon */}
-          <div className="flex items-start gap-4 mb-8">
+          <div className="flex items-start gap-4 mb-4">
             <div className="relative shrink-0">
               <button
                 onClick={() => setAbrirEmoji((v) => !v)}
@@ -547,7 +547,7 @@ export function PaginaView({ id }: { id: number }) {
 
           {/* Main editor */}
           {pagina.kind === "database" ? (
-            <div className="flex-1 min-h-[400px]">
+            <div className="px-8 pb-6 flex-1 min-h-[400px]">
               <BoardView databaseId={dbId ?? 0} onOpenAI={() => setAiAberto(true)} />
             </div>
           ) : !mostrarTemplates && (

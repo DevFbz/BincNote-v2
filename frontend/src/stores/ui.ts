@@ -12,7 +12,7 @@ export const useUI = create<UIState>()(
   persist(
     (set) => ({
       sidebarAberta: true,
-      tema: "system",
+      tema: "dark",
       toggleSidebar: () => set((s) => ({ sidebarAberta: !s.sidebarAberta })),
       setTema: (t) => set({ tema: t }),
     }),
