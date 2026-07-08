@@ -127,22 +127,77 @@ body {
 .ProseMirror a { color: var(--accent); text-decoration: underline; }
 
 /* Generic componentes - Notion-like */
-.btn { @apply inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm font-medium transition-colors; }
-.btn-ghost { @apply text-txt-muted hover:bg-surface-3 dark:hover:bg-surface-dark3; }
-.btn-primary { @apply bg-accent text-white hover:bg-accent-hover; }
-.card { @apply bg-surface-1 dark:bg-surface-dark2 border border-surface-4 dark:border-surface-dark4 rounded-lg shadow-card; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+.btn-ghost {
+  color: var(--txt-muted);
+}
+.btn-ghost:hover {
+  background-color: var(--surface-3);
+}
+.dark .btn-ghost:hover {
+  background-color: var(--surface-dark3);
+}
+.btn-primary {
+  background-color: var(--accent);
+  color: #191919;
+}
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+}
+.card {
+  background-color: var(--surface-1);
+  border: 1px solid var(--surface-4);
+  border-radius: 0.5rem;
+  box-shadow: var(--card-shadow);
+}
+.dark .card {
+  background-color: var(--surface-dark2);
+  border-color: var(--surface-dark4);
+}
 
 /* Sidebar item - Notion-like */
-.nav-item { @apply flex items-center gap-1.5 px-2 py-1 rounded-md text-sm cursor-pointer transition-colors; }
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
 .nav-item { color: var(--txt-muted); }
 .nav-item:hover { background: var(--surface-1); }
 .dark .nav-item:hover { background: #2e2e2e; }
 .nav-item-active { background: var(--surface-1); color: var(--txt); font-weight: 500; }
 .dark .nav-item-active { background: #2e2e2e; }
-.nav-item-muted { @apply text-txt-muted; }
+.nav-item-muted {
+  color: var(--txt-muted);
+}
 
 /* Notion-style pill/tag */
-.pill { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium; }
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
 .pill-default { background: var(--surface-3); color: var(--txt-muted); }
 
 /* Notion-style divider */
@@ -153,3 +208,506 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* Notion Spreadsheet-like Table Styles */
+.notion-table-container {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid var(--divider);
+  border-radius: 0.5rem;
+  background-color: #191919;
+}
+.notion-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: var(--txt);
+}
+.notion-table th {
+  padding: 0.5rem 0.75rem;
+  font-weight: 500;
+  color: var(--txt-muted);
+  border-right: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+  background-color: #1e1e1e;
+  font-size: 11px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.notion-table th:last-child {
+  border-right: none;
+}
+.notion-table td {
+  padding: 0.5rem 0.75rem;
+  border-right: 1px solid var(--divider);
+  border-bottom: 1px solid var(--divider);
+  vertical-align: middle;
+  white-space: nowrap;
+  max-width: 250px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.notion-table td:last-child {
+  border-right: none;
+}
+.notion-table tr {
+  transition: background-color 100ms ease;
+}
+.notion-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+.notion-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Card Detail Panel — Notion full-page style
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Overlay */
+.cdp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 40;
+  transition: opacity 280ms ease;
+}
+
+/* Panel */
+.cdp-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: min(720px, 100vw);
+  background: #1e1e1e;
+  border-left: 1px solid #2a2a2a;
+  display: flex;
+  flex-direction: column;
+  z-index: 50;
+  transition: transform 280ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+}
+
+/* Top bar */
+.cdp-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1.25rem;
+  border-bottom: 1px solid #2a2a2a;
+  flex-shrink: 0;
+  background: #1e1e1e;
+}
+
+.cdp-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cdp-topbar-id {
+  font-size: 11px;
+  color: #555;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.cdp-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.cdp-icon-btn {
+  padding: 0.35rem;
+  border-radius: 6px;
+  color: #666;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms, color 150ms;
+}
+.cdp-icon-btn:hover {
+  background: #2a2a2a;
+  color: #e0e0e0;
+}
+
+/* Scrollable body */
+.cdp-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.cdp-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2.5rem 3rem 4rem;
+}
+
+/* ── Title ── */
+.cdp-title-wrap {
+  margin-bottom: 1.5rem;
+}
+
+.cdp-title-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  letter-spacing: -0.03em;
+  caret-color: var(--accent);
+  padding: 0;
+}
+.cdp-title-input::placeholder {
+  color: #3a3a3a;
+}
+
+/* ── Properties section ── */
+.cdp-props-section {
+  margin-bottom: 1.5rem;
+}
+
+/* Property row */
+.cdp-prop-row {
+  display: flex;
+  align-items: center;
+  min-height: 34px;
+  border-radius: 4px;
+  transition: background 100ms;
+  position: relative;
+}
+.cdp-prop-row:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.cdp-prop-label {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: 160px;
+  min-width: 160px;
+  padding: 0.2rem 0.5rem;
+  font-size: 12px;
+  color: #777;
+  cursor: default;
+  user-select: none;
+}
+
+.cdp-prop-value-cell {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  position: relative;
+}
+
+/* Empty value placeholder */
+.cdp-empty-value {
+  font-size: 13px;
+  color: #444;
+}
+
+/* Select trigger */
+.cdp-select-trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  padding: 0.25rem 0.4rem;
+  border-radius: 4px;
+  transition: background 100ms;
+}
+.cdp-select-trigger:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Badge */
+.cdp-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Dropdown */
+.cdp-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 180px;
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  overflow: hidden;
+  padding: 0.25rem;
+}
+
+.cdp-dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.35rem 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 100ms;
+}
+.cdp-dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Date input */
+.cdp-date-input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  left: 0;
+  top: 0;
+}
+.cdp-date-display {
+  font-size: 13px;
+  color: #e0e0e0;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+/* Checkbox */
+.cdp-checkbox {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+/* Inline text input */
+.cdp-inline-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid #3b82f6;
+  border-radius: 4px;
+  outline: none;
+  padding: 0.2rem 0.4rem;
+  font-size: 13px;
+  color: #e0e0e0;
+}
+
+/* Text value button */
+.cdp-text-value {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  cursor: text;
+  font-size: 13px;
+  color: #e0e0e0;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: background 100ms;
+  text-align: left;
+}
+.cdp-text-value:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Add property button */
+.cdp-add-property {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  margin-top: 0.25rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: #555;
+  border-radius: 4px;
+  transition: color 150ms, background 100ms;
+}
+.cdp-add-property:hover {
+  color: #999;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ── Section divider ── */
+.cdp-divider {
+  height: 1px;
+  background: #2a2a2a;
+  margin: 1.5rem 0;
+}
+
+/* ── Section label ── */
+.cdp-section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 0.75rem;
+}
+
+/* ── Comments ── */
+.cdp-comments-section {
+  margin-bottom: 1.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #252525;
+}
+
+.cdp-comments-list {
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.cdp-comment-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
+.cdp-comment-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cdp-comment-avatar-sm {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cdp-comment-body {
+  flex: 1;
+}
+
+.cdp-comment-text {
+  font-size: 13px;
+  color: #ccc;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.cdp-comment-date {
+  font-size: 11px;
+  color: #555;
+  margin-top: 0.15rem;
+  display: block;
+}
+
+/* Comment input row */
+.cdp-comment-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.5rem;
+  background: #252525;
+  border: 1px solid #2e2e2e;
+  border-radius: 8px;
+  transition: border-color 150ms;
+}
+.cdp-comment-input-wrap:focus-within {
+  border-color: #3b3b3b;
+}
+
+.cdp-comment-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: #ccc;
+  padding: 0;
+}
+.cdp-comment-input::placeholder {
+  color: #444;
+}
+
+/* ── Notes / Rich text ── */
+.cdp-notes-section {
+  padding-top: 0.5rem;
+  border-top: 1px solid #252525;
+  min-height: 200px;
+}
+
+.cdp-editor-content {
+  outline: none;
+  min-height: 200px;
+  color: #ccc;
+  font-size: 14px;
+  line-height: 1.7;
+  caret-color: var(--accent);
+}
+
+.cdp-editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #3a3a3a;
+  pointer-events: none;
+  height: 0;
+}
+
+.cdp-editor-content p { margin: 0.3em 0; }
+.cdp-editor-content h1 { font-size: 1.5rem; font-weight: 700; color: #fff; margin: 1em 0 0.3em; }
+.cdp-editor-content h2 { font-size: 1.25rem; font-weight: 600; color: #fff; margin: 0.9em 0 0.3em; }
+.cdp-editor-content h3 { font-size: 1.1rem; font-weight: 600; color: #eee; margin: 0.8em 0 0.2em; }
+.cdp-editor-content ul, .cdp-editor-content ol { padding-left: 1.4rem; }
+.cdp-editor-content blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 1rem;
+  color: #999;
+  font-style: italic;
+  margin: 0.5em 0;
+}
+.cdp-editor-content code {
+  background: #2a2a2a;
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85em;
+  color: var(--accent);
+}
+.cdp-editor-content pre {
+  background: #232323;
+  padding: 0.8rem 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+.cdp-editor-content strong { color: #fff; }

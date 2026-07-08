@@ -61,14 +61,18 @@ TEMPLATES_KANBAN: list[TemplateKanban] = [
             ColunaKanban("concluido", "Concluído", COR_CONCLUIDO),
         ],
         campos_extras=[
-            {"nome": "Responsável", "kind": "text"},
+            {"nome": "Data Inicio", "kind": "date"},
+            {"nome": "Data Abertura", "kind": "date"},
+            {"nome": "Data Término", "kind": "date"},
             {"nome": "Prioridade", "kind": "select", "config": {
                 "options": [
                     {"id": "baixa", "label": "Baixa", "color": "#9b9b9b"},
                     {"id": "media", "label": "Média", "color": "#f59e0b"},
                     {"id": "alta", "label": "Alta", "color": "#e03e3e"},
+                    {"id": "urgente", "label": "Urgente", "color": "#e03e3e"},
                 ]
             }},
+            {"nome": "Responsável", "kind": "text"},
         ],
         cartoes=[
             CartaoKanban("Definir escopo do projeto", "concluido",

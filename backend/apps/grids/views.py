@@ -135,3 +135,39 @@ class DatabaseByPageView(APIView):
             "nome": db.nome,
             "criado_em": db.criado_em.isoformat(),
         })
+
+
+class EnsureFieldsView(APIView):
+    """Garante que campos obrigatórios existam no database.
+    Recebe lista de campos em body: [{"nome": "...", "kind": "...", "config": {...}}]
+    Cria apenas os que ainda não existem (por nome). Idempotente.
+    """
+
+    def post(self, request, db_id):
+        try:
+            db = Database.objects.get(pk=db_id)
+        except Database.DoesNotExist:
+            return Response({"detail": "Database não encontrado."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        campos_desejados = request.data.get("fields", [])
+        campos_existentes = {
+            f.nome: f for f in Field.objects.filter(database=db)
+        }
+        criados = []
+
+        for campo in campos_desejados:
+            nome = campo.get("nome", "").strip()
+            if not nome or nome in campos_existentes:
+                continue
+            ordem = Field.objects.filter(database=db).count()
+            f = Field.objects.create(
+                database=db,
+                nome=nome,
+                kind=campo.get("kind", "text"),
+                config=campo.get("config", {}),
+                ordem=ordem,
+            )
+            criados.append({"id": f.id, "nome": f.nome, "kind": f.kind})
+
+        return Response({"criados": criados}, status=status.HTTP_200_OK)

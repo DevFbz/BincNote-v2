@@ -15,9 +15,12 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, Trash2, FileText, LayoutList, Kanban, Filter, ArrowDownUp, Search, Zap, ChevronDown } from "lucide-react";
+import {
+  Plus, Trash2, FileText, LayoutList, Kanban, Filter, ArrowDownUp, Search, Zap, ChevronDown,
+  CircleDot, Hash, AlertTriangle, Calendar, User, AlignLeft, CheckSquare, ListTodo, HelpCircle
+} from "lucide-react";
 
-import type { Record as GridRecord } from "../api/grids";
+import type { Record as GridRecord, Cell, Field } from "../api/grids";
 import { useDatabaseDetail, useRecords, getCell, getValorTexto } from "../api/grids";
 import { api } from "../api/cliente";
 import { CardDetailPanel } from "./CardDetailPanel";
@@ -268,6 +271,120 @@ function CardContent({ card, onDelete }: { card: BoardCard; onDelete?: () => voi
   );
 }
 
+function getFieldIcon(field: Field) {
+  const name = field.nome.toLowerCase();
+  const kind = field.kind.toLowerCase();
+  
+  if (kind === "title" || kind === "text") {
+    if (name === "tarefa" || name === "nome" || name === "título" || name === "titulo") {
+      return <span className="font-bold text-[11px] select-none text-txt-muted mr-1.5 w-3.5 text-center inline-block">Aa</span>;
+    }
+    return <AlignLeft size={12} className="text-txt-muted mr-1.5" />;
+  }
+  if (kind === "select") {
+    if (name === "status") {
+      return <CircleDot size={12} className="text-txt-muted mr-1.5" />;
+    }
+    if (name === "prioridade") {
+      return <AlertTriangle size={12} className="text-txt-muted mr-1.5" />;
+    }
+    return <ListTodo size={12} className="text-txt-muted mr-1.5" />;
+  }
+  if (kind === "person" || kind === "user" || kind === "collaborator" || name.includes("responsável") || name.includes("responsavel")) {
+    return <User size={12} className="text-txt-muted mr-1.5" />;
+  }
+  if (kind === "date" || name.includes("data") || name.includes("prazo") || name.includes("término") || name.includes("termino") || name.includes("início") || name.includes("inicio")) {
+    return <Calendar size={12} className="text-txt-muted mr-1.5" />;
+  }
+  if (kind === "number") {
+    return <Hash size={12} className="text-txt-muted mr-1.5" />;
+  }
+  if (kind === "checkbox") {
+    return <CheckSquare size={12} className="text-txt-muted mr-1.5" />;
+  }
+  return <AlignLeft size={12} className="text-txt-muted mr-1.5" />;
+}
+
+function renderCellValue(field: Field, cell?: Cell) {
+  if (!cell || !cell.valor) return <span className="text-txt-faint/30">-</span>;
+  
+  const val = cell.valor;
+  
+  if (field.kind === "select") {
+    const isStatus = field.nome.toLowerCase() === "status";
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium border"
+        style={{
+          backgroundColor: `${val.color || "#9ca3af"}15`,
+          borderColor: `${val.color || "#9ca3af"}30`,
+          color: val.color || "#9ca3af",
+        }}
+      >
+        {isStatus && (
+          <span
+            className="w-1.5 h-1.5 rounded-full shrink-0"
+            style={{ backgroundColor: val.color || "#9ca3af" }}
+          />
+        )}
+        {val.label || ""}
+      </span>
+    );
+  }
+  
+  if (field.kind === "date") {
+    const dateStr = val.text ?? "";
+    if (!dateStr) return <span className="text-txt-faint/30">-</span>;
+    const date = new Date(dateStr + "T12:00:00");
+    if (isNaN(date.getTime())) return dateStr;
+    return (
+      <span className="text-[13px] text-txt">
+        {date.toLocaleDateString("pt-BR", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })}
+      </span>
+    );
+  }
+  
+  if (field.kind === "person" || field.kind === "user" || field.kind === "collaborator" || field.nome.toLowerCase().includes("responsável") || field.nome.toLowerCase().includes("responsavel")) {
+    const name = val.text ?? val.label ?? "";
+    if (!name) return <span className="text-txt-faint/30">-</span>;
+    const initial = name.charAt(0).toUpperCase();
+    return (
+      <div className="flex items-center gap-1.5">
+        <div className="w-5 h-5 rounded-full bg-surface-3 flex items-center justify-center text-[10px] font-bold text-txt-muted border border-surface-4 shrink-0">
+          {initial}
+        </div>
+        <span className="text-[13px] text-txt truncate">{name}</span>
+      </div>
+    );
+  }
+  
+  if (field.kind === "number") {
+    return <span className="text-[13px] text-txt font-mono">{val.text ?? val.label ?? JSON.stringify(val)}</span>;
+  }
+  
+  if (field.kind === "checkbox") {
+    const checked = val.checked ?? false;
+    return (
+      <input
+        type="checkbox"
+        checked={checked}
+        readOnly
+        className="rounded border-surface-4 text-accent focus:ring-accent"
+      />
+    );
+  }
+  
+  return (
+    <span className="text-[13px] text-txt">
+      {val.text ?? val.label ?? (typeof val === "object" ? JSON.stringify(val) : String(val))}
+    </span>
+  );
+}
+
 // ── BoardView ─────────────────────────────────────────────────────────
 export function BoardView({
   databaseId,
@@ -304,6 +421,15 @@ export function BoardView({
   const statusField = db?.fields?.find((f) => f.kind === "select");
   const tituloFieldId = tituloField?.id ?? 0;
   const statusFieldId = statusField?.id ?? 0;
+
+  const columnsToRender = useMemo(() => {
+    if (!db?.fields) return [];
+    const sorted = [...db.fields].sort((a, b) => a.ordem - b.ordem);
+    const titleF = sorted.find((f) => f.kind === "title" || f.kind === "text");
+    if (!titleF) return sorted;
+    const others = sorted.filter((f) => f.id !== titleF.id);
+    return [titleF, ...others];
+  }, [db?.fields]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -593,58 +719,109 @@ export function BoardView({
       ) : (
         /* Table View */
         <div id="table-view-container" className="flex-1 overflow-auto p-4">
-          <div id="table-view-grid" className="grid grid-cols-4 gap-4">
-            {sortedColumns.map((col) => (
-              <div id={`table-column-${col.id}`} key={col.id} className="flex flex-col min-w-0">
-                {/* Column header */}
-                <div id={`table-column-header-${col.id}`} className="flex items-center justify-between mb-3">
-                  <div id={`table-column-header-content-${col.id}`} className="flex items-center gap-2">
-                    <div id={`table-column-pill-${col.id}`} className="flex items-center gap-1.5 px-2 py-0.5 rounded-full" style={{ background: col.bg, border: `1px solid ${col.border}` }}>
-                      <div id={`table-column-dot-${col.id}`} className="w-2 h-2 rounded-full" style={{ background: col.dot }} />
-                      <h3 id={`table-column-title-${col.id}`} className="font-medium text-xs whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: col.dot }}>{col.nome}</h3>
-                    </div>
-                    <span id={`table-column-count-${col.id}`} className="text-xs text-txt-muted">{getCardsByColumn(col.id).length}</span>
-                  </div>
-                </div>
-                {/* Cards list */}
-                <div id={`table-column-cards-${col.id}`} className="flex flex-col gap-2 min-h-[10px]">
-                  {getCardsByColumn(col.id).map((card) => (
-                    <div
-                      id={`table-card-${card.id}`}
-                      key={card.id}
-                      className="px-3 py-2.5 rounded-lg bg-[#1e1e1e] border border-[#2e2e2e] hover:bg-[#252525] transition-colors cursor-pointer group"
-                      onClick={() => setDetailRecordId(card.id)}
+          <div className="notion-table-container">
+            <table className="notion-table">
+              <thead>
+                <tr>
+                  {columnsToRender.map((field) => (
+                    <th
+                      key={field.id}
+                      style={{
+                        width: field.kind === "title" || field.kind === "text" ? "300px" : "150px",
+                        minWidth: field.kind === "title" || field.kind === "text" ? "300px" : "150px",
+                      }}
                     >
-                      <div id={`table-card-content-${card.id}`} className="flex items-start gap-2">
-                        <div id={`table-card-icon-wrapper-${card.id}`} className="shrink-0 pt-0.5">
-                          <FileText id={`table-card-icon-${card.id}`} size={13} className="text-[#b0b0b0]" />
+                      <div className="flex items-center justify-between group/header">
+                        <div className="flex items-center">
+                          {getFieldIcon(field)}
+                          <span>{field.nome}</span>
                         </div>
-                        <div id={`table-card-title-wrapper-${card.id}`} className="flex-1 min-w-0 flex items-center">
-                          <div id={`table-card-title-${card.id}`} className="text-[13px] font-medium text-txt leading-snug break-words whitespace-pre-wrap">
-                            {card.titulo}
-                          </div>
-                        </div>
+                        <span className="opacity-0 group-hover/header:opacity-100 text-txt-faint text-[10px] cursor-pointer hover:text-txt transition-opacity ml-2 select-none">
+                          ⓘ
+                        </span>
+                      </div>
+                    </th>
+                  ))}
+                  {/* Empty header for actions/delete button */}
+                  <th style={{ width: "60px", minWidth: "60px" }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(records ?? []).map((record) => {
+                  const titleVal = tituloFieldId ? getValorTexto(record, tituloFieldId) || "Sem título" : "Sem título";
+                  return (
+                    <tr
+                      key={record.id}
+                      className="group/row"
+                      onClick={() => setDetailRecordId(record.id)}
+                    >
+                      {columnsToRender.map((field) => {
+                        const cell = getCell(record, field.id);
+                        const isTitle = field.id === tituloFieldId;
+                        return (
+                          <td key={field.id}>
+                            {isTitle ? (
+                              <div className="flex items-center justify-between min-w-0">
+                                <div className="flex items-center gap-2 truncate">
+                                  <FileText size={13} className="text-[#b0b0b0] shrink-0" />
+                                  <span className="font-medium text-[13px] text-txt truncate">
+                                    {titleVal}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setDetailRecordId(record.id);
+                                  }}
+                                  className="opacity-0 group-hover/row:opacity-100 flex items-center gap-1 px-1.5 py-0.5 rounded bg-surface-3 hover:bg-surface-4 text-[10px] text-txt-muted hover:text-txt transition-all shrink-0 ml-2"
+                                >
+                                  ABRIR
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="truncate">
+                                {renderCellValue(field, cell)}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {/* Delete column cell */}
+                      <td className="text-center">
                         <button
-                          id={`table-card-delete-${card.id}`}
-                          onClick={(e) => { e.stopPropagation(); handleDeleteCard(card.id); }}
-                          className="p-0.5 rounded text-[#555] hover:text-[#ef4444] hover:bg-[#3a1a1a] opacity-0 group-hover:opacity-100 transition-all shrink-0 self-center"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCard(record.id);
+                          }}
+                          className="opacity-0 group-hover/row:opacity-100 p-1 rounded text-[#555] hover:text-[#ef4444] hover:bg-[#3a1a1a] transition-all"
                           title="Excluir"
                         >
-                          <Trash2 id={`table-card-delete-icon-${card.id}`} size={11} />
+                          <Trash2 size={13} />
                         </button>
-                      </div>
-                    </div>
-                  ))}
-                  <button
-                    id={`table-column-add-btn-${col.id}`}
-                    onClick={() => { setInputText(""); setAddingTo(col.id); }}
-                    className="flex items-center gap-2 px-2 py-1.5 mt-1 text-txt-muted hover:text-txt hover:bg-surface-2 rounded-md transition-colors text-sm w-full text-left"
-                  >
-                    <Plus id={`table-column-add-icon-${col.id}`} size={14} /> Nova página
-                  </button>
-                </div>
-              </div>
-            ))}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {/* Row for adding new record */}
+                <tr className="hover:bg-[#1f1f1f] transition-colors">
+                  <td colSpan={columnsToRender.length + 1} className="p-0">
+                    <button
+                      onClick={() => {
+                        const defaultStatusCol = DEFAULT_COLUMNS[0]?.id; // "a-fazer"
+                        const statusName = COLUMN_STATUS_MAP[defaultStatusCol] || "A fazer";
+                        const title = prompt("Digite o título da nova tarefa:");
+                        if (title && title.trim()) {
+                          addRecord.mutate({ titulo: title.trim(), status: statusName });
+                        }
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-txt-muted hover:text-txt w-full text-left text-xs transition-colors"
+                    >
+                      <Plus size={13} /> Novo registro
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       )}
