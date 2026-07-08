@@ -444,23 +444,35 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
     },
   });
 
-  // Property fields (excluding only title, keeping text fields visible)
+  // Property fields - exclude specific fields by name
+  const EXCLUDED_FIELD_NAMES = ["titulo", "responsavel", "responsável"];
   const displayFields = fields?.filter(
-    (f) => f.kind !== "title"
+    (f) => f.kind !== "title" && !EXCLUDED_FIELD_NAMES.includes(f.nome?.toLowerCase() ?? "")
   ) ?? [];
 
-  // Sort: text fields first, then date, number, checkbox, then select/status last
-  const fieldPriority: Record<string, number> = {
-    "text": 0,
-    "date": 1,
-    "number": 2,
-    "checkbox": 3,
-    "select": 4,
-    "status": 4,
+  // Sort: date fields first ("data inicio", "data abertura", "data termino"), then rest
+  const datePriority: Record<string, number> = {
+    "data inicio": 0,
+    "data abertura": 1,
+    "data termino": 2,
   };
-  const sortedFields = [...displayFields].sort(
-    (a, b) => (fieldPriority[a.kind] ?? 99) - (fieldPriority[b.kind] ?? 99)
-  );
+  const fieldKindPriority: Record<string, number> = {
+    "date": 3,
+    "number": 4,
+    "checkbox": 5,
+    "select": 6,
+    "status": 6,
+  };
+  const sortedFields = [...displayFields].sort((a, b) => {
+    const aDatePrio = datePriority[a.nome?.toLowerCase() ?? ""] ?? -1;
+    const bDatePrio = datePriority[b.nome?.toLowerCase() ?? ""] ?? -1;
+    if (aDatePrio !== -1 || bDatePrio !== -1) {
+      if (aDatePrio === -1) return 1;
+      if (bDatePrio === -1) return -1;
+      return aDatePrio - bDatePrio;
+    }
+    return (fieldKindPriority[a.kind] ?? 99) - (fieldKindPriority[b.kind] ?? 99);
+  });
 
   // Status field (select)
   function renderPropertyRow(field: Field) {
