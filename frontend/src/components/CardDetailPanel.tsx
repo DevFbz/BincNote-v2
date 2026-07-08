@@ -146,11 +146,12 @@ function DatePropertyRow({
 }) {
   const cell = getCell(record, field.id);
   const raw: string = cell?.valor?.text ?? "";
+  const inputRef = useRef<HTMLInputElement>(null);
 
   function formatDate(s: string) {
     if (!s) return "";
     try {
-      return new Date(s).toLocaleDateString("pt-BR", {
+      return new Date(s + "T12:00:00").toLocaleDateString("pt-BR", {
         day: "numeric",
         month: "long",
         year: "numeric",
@@ -167,17 +168,24 @@ function DatePropertyRow({
         <span>{field.nome}</span>
       </div>
       <div className="cdp-prop-value-cell">
+        <button
+          className="cdp-date-trigger"
+          onClick={() => inputRef.current?.showPicker?.() ?? inputRef.current?.click()}
+        >
+          <Calendar size={13} className="cdp-date-trigger-icon" />
+          {raw ? (
+            <span className="cdp-date-display">{formatDate(raw)}</span>
+          ) : (
+            <span className="cdp-empty-value">Vazio</span>
+          )}
+        </button>
         <input
+          ref={inputRef}
           type="date"
           defaultValue={raw}
-          className="cdp-date-input"
+          className="cdp-date-input-hidden"
           onChange={(e) => onUpdate(field.id, { text: e.target.value })}
         />
-        {raw ? (
-          <span className="cdp-date-display">{formatDate(raw)}</span>
-        ) : (
-          <span className="cdp-empty-value">Vazio</span>
-        )}
       </div>
     </div>
   );

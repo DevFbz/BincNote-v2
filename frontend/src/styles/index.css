@@ -474,20 +474,32 @@ body {
 }
 
 /* Date input */
-.cdp-date-input {
-  position: absolute;
-  opacity: 0;
+.cdp-date-input-hidden {
+  display: none;
+}
+.cdp-date-trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   width: 100%;
-  height: 100%;
+  background: transparent;
+  border: none;
   cursor: pointer;
-  left: 0;
-  top: 0;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background 100ms;
+}
+.cdp-date-trigger:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.cdp-date-trigger-icon {
+  color: #6b6b6b;
+  flex-shrink: 0;
 }
 .cdp-date-display {
   font-size: 13px;
   color: #e0e0e0;
   font-weight: 500;
-  cursor: pointer;
 }
 
 /* Checkbox */
