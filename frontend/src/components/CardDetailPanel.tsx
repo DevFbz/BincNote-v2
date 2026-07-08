@@ -445,7 +445,7 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
   });
 
   // Property fields - exclude specific fields by name
-  const EXCLUDED_FIELD_NAMES = ["titulo", "responsavel", "responsável"];
+  const EXCLUDED_FIELD_NAMES = ["titulo", "título", "responsavel", "responsável"];
   const displayFields = fields?.filter(
     (f) => f.kind !== "title" && !EXCLUDED_FIELD_NAMES.includes(f.nome?.toLowerCase() ?? "")
   ) ?? [];
