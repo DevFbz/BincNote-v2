@@ -167,25 +167,22 @@ function DatePropertyRow({
         <FieldIcon kind={field.kind} />
         <span>{field.nome}</span>
       </div>
-      <div className="cdp-prop-value-cell">
-        <button
-          className="cdp-date-trigger"
-          onClick={() => inputRef.current?.showPicker?.() ?? inputRef.current?.click()}
-        >
-          <Calendar size={13} className="cdp-date-trigger-icon" />
+      <div className="cdp-prop-value-cell cdp-date-value-cell">
+        <input
+          ref={inputRef}
+          type="date"
+          defaultValue={raw}
+          className="cdp-date-input-native"
+          onChange={(e) => onUpdate(field.id, { text: e.target.value })}
+        />
+        <div className="cdp-date-preview" onClick={() => inputRef.current?.click()}>
+          <Calendar size={13} className="cdp-date-icon" />
           {raw ? (
             <span className="cdp-date-display">{formatDate(raw)}</span>
           ) : (
             <span className="cdp-empty-value">Vazio</span>
           )}
-        </button>
-        <input
-          ref={inputRef}
-          type="date"
-          defaultValue={raw}
-          className="cdp-date-input-hidden"
-          onChange={(e) => onUpdate(field.id, { text: e.target.value })}
-        />
+        </div>
       </div>
     </div>
   );
