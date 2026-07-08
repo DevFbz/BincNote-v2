@@ -134,6 +134,151 @@ function SelectPropertyRow({
   );
 }
 
+// ── Custom Date Picker Dropdown ──────────────────────────────────────────────
+function CustomDatePicker({
+  value,
+  onChange,
+  onClose,
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  onClose: () => void;
+}) {
+  const [viewYear, setViewYear] = useState(() => {
+    try {
+      return value ? new Date(value + "T12:00:00").getFullYear() : new Date().getFullYear();
+    } catch {
+      return new Date().getFullYear();
+    }
+  });
+  const [viewMonth, setViewMonth] = useState(() => {
+    try {
+      return value ? new Date(value + "T12:00:00").getMonth() : new Date().getMonth();
+    } catch {
+      return new Date().getMonth();
+    }
+  });
+  const [selectedDate, setSelectedDate] = useState(value);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [onClose]);
+
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  function daysInMonth(year: number, month: number) {
+    return new Date(year, month + 1, 0).getDate();
+  }
+
+  function firstDayOfMonth(year: number, month: number) {
+    return new Date(year, month, 1).getDay(); // 0=Sun
+  }
+
+  const monthNames = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+  ];
+
+  function prevMonth() {
+    if (viewMonth === 0) {
+      setViewYear(viewYear - 1);
+      setViewMonth(11);
+    } else {
+      setViewMonth(viewMonth - 1);
+    }
+  }
+
+  function nextMonth() {
+    if (viewMonth === 11) {
+      setViewYear(viewYear + 1);
+      setViewMonth(0);
+    } else {
+      setViewMonth(viewMonth + 1);
+    }
+  }
+
+  function selectDay(day: number) {
+    const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    setSelectedDate(iso);
+    onChange(iso);
+    onClose();
+  }
+
+  function clearDate() {
+    setSelectedDate("");
+    onChange("");
+    onClose();
+  }
+
+  function goToday() {
+    const iso = todayStr;
+    setViewYear(today.getFullYear());
+    setViewMonth(today.getMonth());
+    setSelectedDate(iso);
+    onChange(iso);
+    onClose();
+  }
+
+  const dim = daysInMonth(viewYear, viewMonth);
+  const startDay = firstDayOfMonth(viewYear, viewMonth);
+  const days: (number | null)[] = [];
+  for (let i = 0; i < startDay; i++) days.push(null);
+  for (let i = 1; i <= dim; i++) days.push(i);
+
+  const weekdays = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+  return (
+    <div className="cdp-calendar-dropdown" ref={menuRef}>
+      {/* Header: month/year + nav arrows */}
+      <div className="cdp-cal-header">
+        <button className="cdp-cal-nav-btn" onClick={prevMonth}>&lt;</button>
+        <span className="cdp-cal-title">
+          {monthNames[viewMonth]} {viewYear}
+        </span>
+        <button className="cdp-cal-nav-btn" onClick={nextMonth}>&gt;</button>
+      </div>
+      {/* Weekday labels */}
+      <div className="cdp-cal-weekdays">
+        {weekdays.map((wd) => (
+          <span key={wd} className="cdp-cal-weekday">{wd}</span>
+        ))}
+      </div>
+      {/* Day grid */}
+      <div className="cdp-cal-days">
+        {days.map((d, i) => {
+          if (d === null) return <span key={`e-${i}`} className="cdp-cal-day cdp-cal-empty" />;
+          const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+          const isToday = iso === todayStr;
+          const isSelected = iso === selectedDate;
+          return (
+            <button
+              key={iso}
+              className={`cdp-cal-day${isToday ? " cdp-cal-today" : ""}${isSelected ? " cdp-cal-selected" : ""}`}
+              onClick={() => selectDay(d)}
+            >
+              {d}
+            </button>
+          );
+        })}
+      </div>
+      {/* Action buttons */}
+      <div className="cdp-cal-actions">
+        <button className="cdp-cal-btn cdp-cal-btn-today" onClick={goToday}>Hoje</button>
+        <button className="cdp-cal-btn cdp-cal-btn-clear" onClick={clearDate}>Limpar</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Date Property Row ────────────────────────────────────────────────────────
 function DatePropertyRow({
   field,
@@ -146,7 +291,8 @@ function DatePropertyRow({
 }) {
   const cell = getCell(record, field.id);
   const raw: string = cell?.valor?.text ?? "";
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const cellRef = useRef<HTMLDivElement>(null);
 
   function formatDate(s: string) {
     if (!s) return "";
@@ -161,21 +307,21 @@ function DatePropertyRow({
     }
   }
 
+  function handleChange(val: string) {
+    onUpdate(field.id, { text: val });
+  }
+
   return (
     <div className="cdp-prop-row">
       <div className="cdp-prop-label">
         <FieldIcon kind={field.kind} />
         <span>{field.nome}</span>
       </div>
-      <div className="cdp-prop-value-cell cdp-date-value-cell">
-        <input
-          ref={inputRef}
-          type="date"
-          defaultValue={raw}
-          className="cdp-date-input-native"
-          onChange={(e) => onUpdate(field.id, { text: e.target.value })}
-        />
-        <div className="cdp-date-preview" onClick={() => inputRef.current?.click()}>
+      <div className="cdp-prop-value-cell cdp-date-value-cell" ref={cellRef}>
+        <div
+          className="cdp-date-preview"
+          onClick={() => setOpen(!open)}
+        >
           <Calendar size={13} className="cdp-date-icon" />
           {raw ? (
             <span className="cdp-date-display">{formatDate(raw)}</span>
@@ -183,6 +329,13 @@ function DatePropertyRow({
             <span className="cdp-empty-value">Vazio</span>
           )}
         </div>
+        {open && (
+          <CustomDatePicker
+            value={raw}
+            onChange={handleChange}
+            onClose={() => setOpen(false)}
+          />
+        )}
       </div>
     </div>
   );

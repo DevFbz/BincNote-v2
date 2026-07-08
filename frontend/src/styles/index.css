@@ -473,18 +473,9 @@ body {
   background: rgba(255, 255, 255, 0.06);
 }
 
-/* Date input */
+/* ── Date input / preview ── */
 .cdp-date-value-cell {
   position: relative;
-}
-.cdp-date-input-native {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
-  cursor: pointer;
-  z-index: 2;
 }
 .cdp-date-preview {
   display: flex;
@@ -495,9 +486,6 @@ body {
   border-radius: 4px;
   cursor: pointer;
   transition: background 100ms;
-  position: relative;
-  z-index: 1;
-  pointer-events: none;
 }
 .cdp-date-preview:hover {
   background: rgba(255, 255, 255, 0.05);
@@ -510,6 +498,144 @@ body {
   font-size: 13px;
   color: #e0e0e0;
   font-weight: 500;
+}
+
+/* ── Custom Calendar Dropdown ── */
+.cdp-calendar-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 999;
+  background: #252525;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  padding: 10px;
+  width: 256px;
+  margin-top: 2px;
+  user-select: none;
+}
+
+.cdp-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.cdp-cal-nav-btn {
+  background: transparent;
+  border: none;
+  color: #a0a0a0;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 100ms;
+}
+.cdp-cal-nav-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: #e0e0e0;
+}
+
+.cdp-cal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e0e0e0;
+}
+
+.cdp-cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.cdp-cal-weekday {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b6b6b;
+  padding: 4px 0;
+}
+
+.cdp-cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cdp-cal-day {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  color: #d0d0d0;
+  cursor: pointer;
+  transition: background 80ms, color 80ms;
+}
+.cdp-cal-day:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+.cdp-cal-empty {
+  pointer-events: none;
+}
+
+.cdp-cal-today {
+  background: rgba(75,130,254,0.15);
+  color: #4b82fe;
+  font-weight: 600;
+}
+.cdp-cal-today:hover {
+  background: rgba(75,130,254,0.25);
+  color: #6b9aff;
+}
+
+.cdp-cal-selected {
+  background: #4b82fe !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+
+.cdp-cal-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  border-top: 1px solid #3a3a3a;
+  padding-top: 8px;
+}
+
+.cdp-cal-btn {
+  flex: 1;
+  padding: 6px 0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 100ms;
+}
+
+.cdp-cal-btn-today {
+  background: rgba(75,130,254,0.12);
+  color: #4b82fe;
+}
+.cdp-cal-btn-today:hover {
+  background: rgba(75,130,254,0.22);
+}
+
+.cdp-cal-btn-clear {
+  background: rgba(255,255,255,0.05);
+  color: #a0a0a0;
+}
+.cdp-cal-btn-clear:hover {
+  background: rgba(255,255,255,0.1);
+  color: #e0e0e0;
 }
 
 /* Checkbox */
