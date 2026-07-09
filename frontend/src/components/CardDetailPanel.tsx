@@ -14,9 +14,21 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
+import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+import Underline from "@tiptap/extension-underline";
+import LinkExtension from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
+import { TextStyle } from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
+import Highlight from "@tiptap/extension-highlight";
+import { Table } from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import ImageExtension from "@tiptap/extension-image";
+import HorizontalRule from "@tiptap/extension-horizontal-rule";
 
 import {
   Bold,
@@ -26,6 +38,23 @@ import {
   List as ListIcon,
   ListOrdered,
   Quote,
+  Underline as UnderlineIcon,
+  Link,
+  AlignCenter,
+  AlignJustify,
+  AlignRight,
+  Heading1,
+  Heading2,
+  Heading3,
+  Palette,
+  Highlighter,
+  ImageIcon,
+  Table2,
+  Minus,
+  RemoveFormatting,
+  Indent,
+  Outdent,
+  Pilcrow,
 } from "lucide-react";
 
 import { api } from "../api/cliente";
@@ -595,6 +624,21 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
         heading: { levels: [1, 2, 3] },
       }),
       Placeholder.configure({ placeholder: "Adicione uma descrição ou notas..." }),
+      Underline,
+      LinkExtension.configure({
+        openOnClick: false,
+        HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
+      }),
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextStyle,
+      Color,
+      Highlight.configure({ multicolor: true }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableCell,
+      TableHeader,
+      ImageExtension.configure({ inline: false }),
+      HorizontalRule,
     ],
     content: "",
     immediatelyRender: false,
@@ -794,85 +838,215 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
             <div className="cdp-notes-section">
               {editor && (
                 <>
+                  {/* FloatingMenu — aparece ao clicar em linha vazia / novo parágrafo */}
+                  <FloatingMenu
+                    editor={editor}
+                    className="cdp-float-menu"
+                    tippyOptions={{ duration: 100, placement: "top-start" }}
+                  >
+                    <div className="cdp-float-group">
+                      <button
+                        onClick={() => editor.chain().focus().setParagraph().run()}
+                        className={`cdp-float-btn${editor.isActive("paragraph") ? " active" : ""}`}
+                        title="Texto normal"
+                      ><Pilcrow size={14} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                        className={`cdp-float-btn${editor.isActive("heading", { level: 1 }) ? " active" : ""}`}
+                        title="Título 1"
+                      ><Heading1 size={14} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                        className={`cdp-float-btn${editor.isActive("heading", { level: 2 }) ? " active" : ""}`}
+                        title="Título 2"
+                      ><Heading2 size={14} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                        className={`cdp-float-btn${editor.isActive("heading", { level: 3 }) ? " active" : ""}`}
+                        title="Título 3"
+                      ><Heading3 size={14} /></button>
+                    </div>
+                    <div className="cdp-float-sep" />
+                    <div className="cdp-float-group">
+                      <button
+                        onClick={() => editor.chain().focus().toggleBulletList().run()}
+                        className={`cdp-float-btn${editor.isActive("bulletList") ? " active" : ""}`}
+                        title="Lista"
+                      ><ListIcon size={14} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                        className={`cdp-float-btn${editor.isActive("orderedList") ? " active" : ""}`}
+                        title="Lista numerada"
+                      ><ListOrdered size={14} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                        className={`cdp-float-btn${editor.isActive("blockquote") ? " active" : ""}`}
+                        title="Citação"
+                      ><Quote size={14} /></button>
+                    </div>
+                  </FloatingMenu>
+
+                  {/* BubbleMenu — aparece com texto selecionado */}
                   <BubbleMenu
                     editor={editor}
                     className="cdp-bubble-menu"
                     tippyOptions={{ duration: 120, placement: "top" }}
                   >
-                    <div className="cdp-bubble-group">
+                    {/* Seção Habilidades — formatação inline */}
+                    <div className="cdp-bubble-section-label">Habilidades</div>
+                    <div className="cdp-bubble-row">
                       <button
                         onClick={() => editor.chain().focus().toggleBold().run()}
                         className={`cdp-bubble-btn${editor.isActive("bold") ? " active" : ""}`}
                         title="Negrito"
-                      >
-                        <Bold size={14} />
-                      </button>
+                      ><Bold size={13} /></button>
                       <button
                         onClick={() => editor.chain().focus().toggleItalic().run()}
                         className={`cdp-bubble-btn${editor.isActive("italic") ? " active" : ""}`}
                         title="Itálico"
-                      >
-                        <Italic size={14} />
-                      </button>
+                      ><Italic size={13} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleUnderline().run()}
+                        className={`cdp-bubble-btn${editor.isActive("underline") ? " active" : ""}`}
+                        title="Sublinhado"
+                      ><UnderlineIcon size={13} /></button>
                       <button
                         onClick={() => editor.chain().focus().toggleStrike().run()}
                         className={`cdp-bubble-btn${editor.isActive("strike") ? " active" : ""}`}
                         title="Tachado"
-                      >
-                        <Strikethrough size={14} />
-                      </button>
+                      ><Strikethrough size={13} /></button>
                       <button
                         onClick={() => editor.chain().focus().toggleCode().run()}
                         className={`cdp-bubble-btn${editor.isActive("code") ? " active" : ""}`}
                         title="Código"
-                      >
-                        <Code size={14} />
-                      </button>
+                      ><Code size={13} /></button>
+                      <button
+                        onClick={() => {
+                          const url = window.prompt("URL do link:", editor.getAttributes("link").href ?? "");
+                          if (url === null) return;
+                          if (url === "") {
+                            editor.chain().focus().unsetLink().run();
+                          } else {
+                            editor.chain().focus().setLink({ href: url }).run();
+                          }
+                        }}
+                        className={`cdp-bubble-btn${editor.isActive("link") ? " active" : ""}`}
+                        title="Link"
+                      ><Link size={13} /></button>
                     </div>
                     <div className="cdp-bubble-sep" />
-                    <div className="cdp-bubble-group">
+
+                    {/* Seção de cores */}
+                    <div className="cdp-bubble-row">
+                      <div className="cdp-color-group">
+                        <button
+                          onClick={() => {
+                            const color = editor.getAttributes("textStyle").color || "#e74c3c";
+                            const next = color === "#e74c3c" ? "" : "#e74c3c";
+                            editor.chain().focus().setColor(next).run();
+                          }}
+                          className={`cdp-bubble-btn${editor.getAttributes("textStyle").color ? " active-color" : ""}`}
+                          title="Cor do texto"
+                        ><Palette size={13} /></button>
+                        <div className="cdp-color-options">
+                          {["#e74c3c","#f39c12","#2ecc71","#3498db","#9b59b6","#1abc9c","#e67e22","#34495e"].map(c => (
+                            <button
+                              key={c}
+                              onClick={() => editor.chain().focus().setColor(c).run()}
+                              className="cdp-color-swatch"
+                              style={{ backgroundColor: c, display: "inline-block", width: 14, height: 14, borderRadius: 3, cursor: "pointer", border: "1px solid #444" }}
+                              title={c}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const hl = editor.getAttributes("highlight").color;
+                          if (hl) {
+                            editor.chain().focus().unsetHighlight().run();
+                          } else {
+                            editor.chain().focus().setHighlight({ color: "#fef08a" }).run();
+                          }
+                        }}
+                        className={`cdp-bubble-btn${editor.isActive("highlight") ? " active" : ""}`}
+                        title="Marcador"
+                      ><Highlighter size={13} /></button>
+                      <button
+                        onClick={() => {
+                          editor.chain().focus().unsetAllMarks().run();
+                        }}
+                        className="cdp-bubble-btn"
+                        title="Limpar formatação"
+                      ><RemoveFormatting size={13} /></button>
+                    </div>
+                    <div className="cdp-bubble-sep" />
+
+                    {/* Seção Parágrafo — alinhamento, lista, citação */}
+                    <div className="cdp-bubble-section-label">Parágrafo</div>
+                    <div className="cdp-bubble-row">
+                      <button
+                        onClick={() => editor.chain().focus().setTextAlign("left").run()}
+                        className={`cdp-bubble-btn${editor.isActive({ textAlign: "left" }) ? " active" : ""}`}
+                        title="Alinhar esquerda"
+                      ><AlignLeft size={13} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().setTextAlign("center").run()}
+                        className={`cdp-bubble-btn${editor.isActive({ textAlign: "center" }) ? " active" : ""}`}
+                        title="Centralizar"
+                      ><AlignCenter size={13} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().setTextAlign("right").run()}
+                        className={`cdp-bubble-btn${editor.isActive({ textAlign: "right" }) ? " active" : ""}`}
+                        title="Alinhar direita"
+                      ><AlignRight size={13} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().setTextAlign("justify").run()}
+                        className={`cdp-bubble-btn${editor.isActive({ textAlign: "justify" }) ? " active" : ""}`}
+                        title="Justificar"
+                      ><AlignJustify size={13} /></button>
+                    </div>
+                    <div className="cdp-bubble-sep" />
+                    <div className="cdp-bubble-row">
                       <button
                         onClick={() => editor.chain().focus().toggleBulletList().run()}
                         className={`cdp-bubble-btn${editor.isActive("bulletList") ? " active" : ""}`}
                         title="Lista"
-                      >
-                        <ListIcon size={14} />
-                      </button>
+                      ><ListIcon size={13} /></button>
                       <button
                         onClick={() => editor.chain().focus().toggleOrderedList().run()}
                         className={`cdp-bubble-btn${editor.isActive("orderedList") ? " active" : ""}`}
                         title="Lista numerada"
-                      >
-                        <ListOrdered size={14} />
-                      </button>
+                      ><ListOrdered size={13} /></button>
                       <button
                         onClick={() => editor.chain().focus().toggleBlockquote().run()}
                         className={`cdp-bubble-btn${editor.isActive("blockquote") ? " active" : ""}`}
                         title="Citação"
-                      >
-                        <Quote size={14} />
-                      </button>
+                      ><Quote size={13} /></button>
                     </div>
                     <div className="cdp-bubble-sep" />
-                    <div className="cdp-bubble-group">
+
+                    {/* Seção Inserir — mídia, tabela, linha */}
+                    <div className="cdp-bubble-section-label">Inserir</div>
+                    <div className="cdp-bubble-row">
                       <button
                         onClick={() => {
-                          const heading = editor.isActive("heading", { level: 1 })
-                            ? false
-                            : editor.isActive("heading", { level: 2 })
-                            ? false
-                            : true;
-                          if (heading) {
-                            editor.chain().focus().toggleHeading({ level: 1 }).run();
-                          } else {
-                            editor.chain().focus().setParagraph().run();
-                          }
+                          const url = window.prompt("URL da imagem:");
+                          if (url) editor.chain().focus().setImage({ src: url }).run();
                         }}
-                        className={`cdp-bubble-btn${editor.isActive("heading") ? " active" : ""}`}
-                        title="Título"
-                      >
-                        <span style={{ fontWeight: 700, fontSize: 13 }}>H</span>
-                      </button>
+                        className="cdp-bubble-btn"
+                        title="Imagem"
+                      ><ImageIcon size={13} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+                        className="cdp-bubble-btn"
+                        title="Tabela"
+                      ><Table2 size={13} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                        className="cdp-bubble-btn"
+                        title="Linha horizontal"
+                      ><Minus size={13} /></button>
                     </div>
                   </BubbleMenu>
                   <EditorContent editor={editor} />

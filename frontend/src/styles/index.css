@@ -815,57 +815,135 @@ body {
   position: relative;
 }
 
-/* ── Bubble menu ── */
+/* ── Bubble menu (rich toolbar on selection) ── */
 .cdp-bubble-menu {
+  display: flex;
+  flex-direction: column;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 6px 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  max-width: 420px;
+  gap: 2px;
+  font-size: 12px;
+}
+
+.cdp-bubble-section-label {
+  color: #888;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 0;
+  margin-bottom: 2px;
+}
+
+.cdp-bubble-row {
   display: flex;
   align-items: center;
   gap: 2px;
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
-  border-radius: 8px;
-  padding: 4px 6px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
-}
-
-.cdp-bubble-group {
-  display: flex;
-  align-items: center;
-  gap: 1px;
-}
-
-.cdp-bubble-sep {
-  width: 1px;
-  height: 20px;
-  background: #3a3a3a;
-  margin: 0 3px;
+  flex-wrap: wrap;
 }
 
 .cdp-bubble-btn {
+  width: 28px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 26px;
+  background: transparent;
   border: none;
   border-radius: 4px;
-  background: transparent;
-  color: #a0a0a0;
+  color: #ccc;
   cursor: pointer;
-  transition: background 80ms, color 80ms;
+  transition: all 0.1s;
 }
 .cdp-bubble-btn:hover {
-  background: rgba(255,255,255,0.08);
-  color: #e0e0e0;
+  background: #333;
+  color: #fff;
 }
 .cdp-bubble-btn.active {
-  background: rgba(75,130,254,0.2);
-  color: #4b82fe;
+  background: #1a5fb4;
+  color: #fff;
 }
 .cdp-bubble-btn.active-color {
-  background: rgba(231,76,60,0.2);
-  color: #e74c3c;
+  background: #1a5fb4;
+  color: #fff;
 }
 
+.cdp-bubble-sep {
+  width: 100%;
+  height: 1px;
+  background: #333;
+  margin: 3px 0;
+}
+
+/* ── Color swatches inside bubble ── */
+.cdp-color-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.cdp-color-options {
+  display: flex;
+  gap: 2px;
+  margin-left: 4px;
+}
+.cdp-color-swatch {
+  transition: transform 0.1s;
+}
+.cdp-color-swatch:hover {
+  transform: scale(1.2);
+}
+
+/* ── Floating menu (on empty line / new paragraph) ── */
+.cdp-float-menu {
+  display: flex;
+  align-items: center;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 4px 6px;
+  gap: 2px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+
+.cdp-float-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cdp-float-sep {
+  width: 1px;
+  height: 20px;
+  background: #333;
+  margin: 0 3px;
+}
+
+.cdp-float-btn {
+  width: 28px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #ccc;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.cdp-float-btn:hover {
+  background: #333;
+  color: #fff;
+}
+.cdp-float-btn.active {
+  background: #1a5fb4;
+  color: #fff;
+}
+
+/* ── TipTap editor content ── */
 .cdp-editor-content {
   outline: none;
   min-height: 200px;
@@ -883,7 +961,6 @@ body {
   pointer-events: none;
 }
 
-/* Editor text styles */
 .cdp-editor-content h1 { font-size: 1.4em; font-weight: 700; margin: 0.6em 0 0.3em; color: #e8e8e8; }
 .cdp-editor-content h2 { font-size: 1.2em; font-weight: 600; margin: 0.5em 0 0.3em; color: #e0e0e0; }
 .cdp-editor-content h3 { font-size: 1.1em; font-weight: 600; margin: 0.4em 0 0.2em; color: #d8d8d8; }
@@ -891,18 +968,26 @@ body {
 .cdp-editor-content ol { padding-left: 1.5em; margin: 0.4em 0; }
 .cdp-editor-content li { margin: 0.2em 0; }
 .cdp-editor-content blockquote {
-  border-left: 3px solid #4b82fe;
+  border-left: 3px solid var(--accent, #4b82fe);
   padding-left: 12px;
   color: #999;
   font-style: italic;
   margin: 0.4em 0;
 }
 .cdp-editor-content code {
-  background: rgba(255,255,255,0.06);
+  background: #2a2a2a;
+  padding: 0.1em 0.3em;
   border-radius: 3px;
-  padding: 2px 5px;
-  font-size: 0.9em;
-  color: #e06c75;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85em;
+  color: var(--accent, #e06c75);
+}
+.cdp-editor-content pre {
+  background: #232323;
+  padding: 0.8rem 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.5em 0;
 }
 .cdp-editor-content mark {
   background: #fef08a;
@@ -912,29 +997,8 @@ body {
 }
 .cdp-editor-content s { color: #888; }
 .cdp-editor-content u { text-decoration: underline; }
-
 .cdp-editor-content p { margin: 0.3em 0; }
-
-.cdp-editor-content blockquote {
-  border-left: 3px solid var(--accent);
-  padding-left: 1rem;
-  color: #999;
-  font-style: italic;
-  margin: 0.5em 0;
-}
-.cdp-editor-content code {
-  background: #2a2a2a;
-  padding: 0.1em 0.3em;
-  border-radius: 3px;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 0.85em;
-  color: var(--accent);
-}
-.cdp-editor-content pre {
-  background: #232323;
-  padding: 0.8rem 1rem;
-  border-radius: 6px;
-  overflow-x: auto;
-  margin: 0.5em 0;
-}
+.cdp-editor-content a { color: #4b82fe; text-decoration: underline; }
 .cdp-editor-content strong { color: #fff; }
+.cdp-editor-content img { max-width: 100%; border-radius: 4px; margin: 0.5em 0; }
+.cdp-editor-content hr { border: none; border-top: 1px solid #333; margin: 1em 0; }
