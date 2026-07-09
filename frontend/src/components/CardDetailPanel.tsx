@@ -54,6 +54,8 @@ import {
   RemoveFormatting,
   Indent,
   Outdent,
+  Undo2,
+  Redo2,
   Pilcrow,
 } from "lucide-react";
 
@@ -916,164 +918,157 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
                   <BubbleMenu
                     editor={editor}
                     className="cdp-bubble-menu"
-                    tippyOptions={{ duration: 120, placement: "top" }}
+                    tippyOptions={{ duration: 100, placement: "top" }}
                   >
-                    {/* Seção Habilidades — formatação inline */}
-                    <div className="cdp-bubble-section-label">Habilidades</div>
-                    <div className="cdp-bubble-row">
-                      <button
-                        onClick={() => editor.chain().focus().toggleBold().run()}
-                        className={`cdp-bubble-btn${editor.isActive("bold") ? " active" : ""}`}
-                        title="Negrito"
-                      ><Bold size={13} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleItalic().run()}
-                        className={`cdp-bubble-btn${editor.isActive("italic") ? " active" : ""}`}
-                        title="Itálico"
-                      ><Italic size={13} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleUnderline().run()}
-                        className={`cdp-bubble-btn${editor.isActive("underline") ? " active" : ""}`}
-                        title="Sublinhado"
-                      ><UnderlineIcon size={13} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleStrike().run()}
-                        className={`cdp-bubble-btn${editor.isActive("strike") ? " active" : ""}`}
-                        title="Tachado"
-                      ><Strikethrough size={13} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleCode().run()}
-                        className={`cdp-bubble-btn${editor.isActive("code") ? " active" : ""}`}
-                        title="Código"
-                      ><Code size={13} /></button>
-                      <button
-                        onClick={() => {
-                          const url = window.prompt("URL do link:", editor.getAttributes("link").href ?? "");
-                          if (url === null) return;
-                          if (url === "") {
-                            editor.chain().focus().unsetLink().run();
-                          } else {
-                            editor.chain().focus().setLink({ href: url }).run();
-                          }
-                        }}
-                        className={`cdp-bubble-btn${editor.isActive("link") ? " active" : ""}`}
-                        title="Link"
-                      ><Link size={13} /></button>
-                    </div>
-                    <div className="cdp-bubble-sep" />
-
-                    {/* Seção de cores */}
-                    <div className="cdp-bubble-row">
-                      <div className="cdp-color-group">
+                    <button
+                      onClick={() => editor.chain().focus().toggleBold().run()}
+                      className={`cdp-bb-btn${editor.isActive("bold") ? " active" : ""}`}
+                      title="Negrito"
+                    ><Bold size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().toggleItalic().run()}
+                      className={`cdp-bb-btn${editor.isActive("italic") ? " active" : ""}`}
+                      title="Itálico"
+                    ><Italic size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().toggleUnderline().run()}
+                      className={`cdp-bb-btn${editor.isActive("underline") ? " active" : ""}`}
+                      title="Sublinhado"
+                    ><UnderlineIcon size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().toggleStrike().run()}
+                      className={`cdp-bb-btn${editor.isActive("strike") ? " active" : ""}`}
+                      title="Tachado"
+                    ><Strikethrough size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().toggleCode().run()}
+                      className={`cdp-bb-btn${editor.isActive("code") ? " active" : ""}`}
+                      title="Código"
+                    ><Code size={12} /></button>
+                    <button
+                      onClick={() => {
+                        const url = window.prompt("URL do link:", editor.getAttributes("link").href ?? "");
+                        if (url === null) return;
+                        if (url === "") { editor.chain().focus().unsetLink().run(); }
+                        else { editor.chain().focus().setLink({ href: url }).run(); }
+                      }}
+                      className={`cdp-bb-btn${editor.isActive("link") ? " active" : ""}`}
+                      title="Link"
+                    ><Link size={12} /></button>
+                    <div className="cdp-bb-sep" />
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById("cdp-color-palette");
+                        if (el) el.style.display = el.style.display === "none" ? "flex" : "none";
+                      }}
+                      className={`cdp-bb-btn${editor.getAttributes("textStyle").color ? " active" : ""}`}
+                      title="Cor do texto"
+                    ><Palette size={12} /></button>
+                    <div id="cdp-color-palette" className="cdp-bb-palette">
+                      {["#e74c3c","#f39c12","#2ecc71","#3498db","#9b59b6","#1abc9c","#e67e22","#34495e"].map(c => (
                         <button
-                          onClick={() => {
-                            const color = editor.getAttributes("textStyle").color || "#e74c3c";
-                            const next = color === "#e74c3c" ? "" : "#e74c3c";
-                            editor.chain().focus().setColor(next).run();
-                          }}
-                          className={`cdp-bubble-btn${editor.getAttributes("textStyle").color ? " active-color" : ""}`}
-                          title="Cor do texto"
-                        ><Palette size={13} /></button>
-                        <div className="cdp-color-options">
-                          {["#e74c3c","#f39c12","#2ecc71","#3498db","#9b59b6","#1abc9c","#e67e22","#34495e"].map(c => (
-                            <button
-                              key={c}
-                              onClick={() => editor.chain().focus().setColor(c).run()}
-                              className="cdp-color-swatch"
-                              style={{ backgroundColor: c, display: "inline-block", width: 14, height: 14, borderRadius: 3, cursor: "pointer", border: "1px solid #444" }}
-                              title={c}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          const hl = editor.getAttributes("highlight").color;
-                          if (hl) {
-                            editor.chain().focus().unsetHighlight().run();
-                          } else {
-                            editor.chain().focus().setHighlight({ color: "#fef08a" }).run();
-                          }
-                        }}
-                        className={`cdp-bubble-btn${editor.isActive("highlight") ? " active" : ""}`}
-                        title="Marcador"
-                      ><Highlighter size={13} /></button>
-                      <button
-                        onClick={() => {
-                          editor.chain().focus().unsetAllMarks().run();
-                        }}
-                        className="cdp-bubble-btn"
-                        title="Limpar formatação"
-                      ><RemoveFormatting size={13} /></button>
+                          key={c}
+                          onClick={() => editor.chain().focus().setColor(c).run()}
+                          className="cdp-bb-color"
+                          style={{ backgroundColor: c }}
+                          title={c}
+                        />
+                      ))}
                     </div>
-                    <div className="cdp-bubble-sep" />
-
-                    {/* Seção Parágrafo — alinhamento, lista, citação */}
-                    <div className="cdp-bubble-section-label">Parágrafo</div>
-                    <div className="cdp-bubble-row">
-                      <button
-                        onClick={() => editor.chain().focus().setTextAlign("left").run()}
-                        className={`cdp-bubble-btn${editor.isActive({ textAlign: "left" }) ? " active" : ""}`}
-                        title="Alinhar esquerda"
-                      ><AlignLeft size={13} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().setTextAlign("center").run()}
-                        className={`cdp-bubble-btn${editor.isActive({ textAlign: "center" }) ? " active" : ""}`}
-                        title="Centralizar"
-                      ><AlignCenter size={13} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().setTextAlign("right").run()}
-                        className={`cdp-bubble-btn${editor.isActive({ textAlign: "right" }) ? " active" : ""}`}
-                        title="Alinhar direita"
-                      ><AlignRight size={13} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().setTextAlign("justify").run()}
-                        className={`cdp-bubble-btn${editor.isActive({ textAlign: "justify" }) ? " active" : ""}`}
-                        title="Justificar"
-                      ><AlignJustify size={13} /></button>
-                    </div>
-                    <div className="cdp-bubble-sep" />
-                    <div className="cdp-bubble-row">
-                      <button
-                        onClick={() => editor.chain().focus().toggleBulletList().run()}
-                        className={`cdp-bubble-btn${editor.isActive("bulletList") ? " active" : ""}`}
-                        title="Lista"
-                      ><ListIcon size={13} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                        className={`cdp-bubble-btn${editor.isActive("orderedList") ? " active" : ""}`}
-                        title="Lista numerada"
-                      ><ListOrdered size={13} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                        className={`cdp-bubble-btn${editor.isActive("blockquote") ? " active" : ""}`}
-                        title="Citação"
-                      ><Quote size={13} /></button>
-                    </div>
-                    <div className="cdp-bubble-sep" />
-
-                    {/* Seção Inserir — mídia, tabela, linha */}
-                    <div className="cdp-bubble-section-label">Inserir</div>
-                    <div className="cdp-bubble-row">
-                      <button
-                        onClick={() => {
-                          const url = window.prompt("URL da imagem:");
-                          if (url) editor.chain().focus().setImage({ src: url }).run();
-                        }}
-                        className="cdp-bubble-btn"
-                        title="Imagem"
-                      ><ImageIcon size={13} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-                        className="cdp-bubble-btn"
-                        title="Tabela"
-                      ><Table2 size={13} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().setHorizontalRule().run()}
-                        className="cdp-bubble-btn"
-                        title="Linha horizontal"
-                      ><Minus size={13} /></button>
-                    </div>
+                    <button
+                      onClick={() => {
+                        if (editor.isActive("highlight")) {
+                          editor.chain().focus().unsetHighlight().run();
+                        } else {
+                          editor.chain().focus().setHighlight({ color: "#fef08a" }).run();
+                        }
+                      }}
+                      className={`cdp-bb-btn${editor.isActive("highlight") ? " active" : ""}`}
+                      title="Marcador"
+                    ><Highlighter size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().unsetAllMarks().run()}
+                      className="cdp-bb-btn"
+                      title="Limpar formatação"
+                    ><RemoveFormatting size={12} /></button>
+                    <div className="cdp-bb-sep" />
+                    <button
+                      onClick={() => editor.chain().focus().undo().run()}
+                      className="cdp-bb-btn"
+                      title="Desfazer"
+                    ><Undo2 size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().redo().run()}
+                      className="cdp-bb-btn"
+                      title="Refazer"
+                    ><Redo2 size={12} /></button>
+                    <div className="cdp-bb-sep" />
+                    <button
+                      onClick={() => editor.chain().focus().sinkListItem("listItem").run()}
+                      className="cdp-bb-btn"
+                      title="Aumentar indentação"
+                    ><Indent size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().liftListItem("listItem").run()}
+                      className="cdp-bb-btn"
+                      title="Diminuir indentação"
+                    ><Outdent size={12} /></button>
+                    <div className="cdp-bb-sep" />
+                    <button
+                      onClick={() => editor.chain().focus().toggleBulletList().run()}
+                      className={`cdp-bb-btn${editor.isActive("bulletList") ? " active" : ""}`}
+                      title="Lista"
+                    ><ListIcon size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                      className={`cdp-bb-btn${editor.isActive("orderedList") ? " active" : ""}`}
+                      title="Lista numerada"
+                    ><ListOrdered size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                      className={`cdp-bb-btn${editor.isActive("blockquote") ? " active" : ""}`}
+                      title="Citação"
+                    ><Quote size={12} /></button>
+                    <div className="cdp-bb-sep" />
+                    <button
+                      onClick={() => editor.chain().focus().setTextAlign("left").run()}
+                      className={`cdp-bb-btn${editor.isActive({ textAlign: "left" }) ? " active" : ""}`}
+                      title="Alinhar esquerda"
+                    ><AlignLeft size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().setTextAlign("center").run()}
+                      className={`cdp-bb-btn${editor.isActive({ textAlign: "center" }) ? " active" : ""}`}
+                      title="Centralizar"
+                    ><AlignCenter size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().setTextAlign("right").run()}
+                      className={`cdp-bb-btn${editor.isActive({ textAlign: "right" }) ? " active" : ""}`}
+                      title="Alinhar direita"
+                    ><AlignRight size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().setTextAlign("justify").run()}
+                      className={`cdp-bb-btn${editor.isActive({ textAlign: "justify" }) ? " active" : ""}`}
+                      title="Justificar"
+                    ><AlignJustify size={12} /></button>
+                    <div className="cdp-bb-sep" />
+                    <button
+                      onClick={() => {
+                        const url = window.prompt("URL da imagem:");
+                        if (url) editor.chain().focus().setImage({ src: url }).run();
+                      }}
+                      className="cdp-bb-btn"
+                      title="Imagem"
+                    ><ImageIcon size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+                      className="cdp-bb-btn"
+                      title="Tabela"
+                    ><Table2 size={12} /></button>
+                    <button
+                      onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                      className="cdp-bb-btn"
+                      title="Linha horizontal"
+                    ><Minus size={12} /></button>
                   </BubbleMenu>
                   <EditorContent editor={editor} />
                 </>

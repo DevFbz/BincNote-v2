@@ -815,85 +815,82 @@ body {
   position: relative;
 }
 
-/* ── Bubble menu (rich toolbar on selection) ── */
+/* ── Bubble menu (horizontal toolbar like reference) ── */
 .cdp-bubble-menu {
   display: flex;
-  flex-direction: column;
-  background: #1e1e1e;
-  border: 1px solid #333;
-  border-radius: 10px;
-  padding: 6px 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-  max-width: 420px;
-  gap: 2px;
-  font-size: 12px;
-}
-
-.cdp-bubble-section-label {
-  color: #888;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 2px 0;
-  margin-bottom: 2px;
-}
-
-.cdp-bubble-row {
-  display: flex;
   align-items: center;
-  gap: 2px;
-  flex-wrap: wrap;
+  gap: 1px;
+  background: #232323;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 3px 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+  flex-wrap: nowrap;
+  max-width: 580px;
+  overflow-x: auto;
 }
 
-.cdp-bubble-btn {
-  width: 28px;
-  height: 26px;
+.cdp-bb-btn {
+  width: 26px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: none;
-  border-radius: 4px;
-  color: #ccc;
+  border-radius: 3px;
+  color: #bbb;
   cursor: pointer;
-  transition: all 0.1s;
+  transition: all 0.1s ease;
+  font-size: 11px;
+  flex-shrink: 0;
 }
-.cdp-bubble-btn:hover {
-  background: #333;
+.cdp-bb-btn:hover {
+  background: #3a3a3a;
   color: #fff;
 }
-.cdp-bubble-btn.active {
-  background: #1a5fb4;
-  color: #fff;
-}
-.cdp-bubble-btn.active-color {
-  background: #1a5fb4;
+.cdp-bb-btn.active {
+  background: #0d6efd;
   color: #fff;
 }
 
-.cdp-bubble-sep {
-  width: 100%;
-  height: 1px;
-  background: #333;
-  margin: 3px 0;
+.cdp-bb-sep {
+  width: 1px;
+  height: 16px;
+  background: #3a3a3a;
+  margin: 0 2px;
+  flex-shrink: 0;
 }
 
-/* ── Color swatches inside bubble ── */
-.cdp-color-group {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.cdp-color-options {
-  display: flex;
+.cdp-bb-palette {
+  display: none;
+  position: absolute;
+  top: 28px;
+  left: 0;
+  background: #232323;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 3px;
   gap: 2px;
-  margin-left: 4px;
+  z-index: 100;
+  flex-wrap: wrap;
+  width: auto;
+  max-width: 120px;
 }
-.cdp-color-swatch {
-  transition: transform 0.1s;
+.cdp-bb-palette.show {
+  display: flex;
 }
-.cdp-color-swatch:hover {
-  transform: scale(1.2);
+.cdp-bb-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  border: 1px solid #444;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.cdp-bb-color:hover {
+  border-color: #888;
+  transform: scale(1.15);
 }
 
 /* ── Floating menu (on empty line / new paragraph) ── */
