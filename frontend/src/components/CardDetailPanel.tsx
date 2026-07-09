@@ -58,11 +58,9 @@ import {
   Redo2,
   Pilcrow,
   ChevronRight,
-  MoreHorizontal,
   Smile,
   Pen,
   SlidersHorizontal,
-  Sigma,
 } from "lucide-react";
 
 import { api } from "../api/cliente";
@@ -940,8 +938,9 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
                       </button>
                     </div>
 
-                    {/* Seção 2: Grid de formatação básica (4 colunas) */}
+                    {/* Seção 2: Grid de ícones (2 linhas × 4 colunas) */}
                     <div className="cdp-bm-grid">
+                      {/* A — cor do texto */}
                       <button
                         onClick={() => {
                           const el = document.getElementById("cdp-bm-color-popup");
@@ -950,21 +949,48 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
                         className={`cdp-bm-grid-btn${editor.getAttributes("textStyle").color ? " active" : ""}`}
                         title="Cor do texto"
                       ><Palette size={14} /></button>
+                      {/* B — negrito */}
                       <button
                         onClick={() => editor.chain().focus().toggleBold().run()}
                         className={`cdp-bm-grid-btn${editor.isActive("bold") ? " active" : ""}`}
                         title="Negrito"
                       ><Bold size={14} /></button>
+                      {/* I — itálico */}
                       <button
                         onClick={() => editor.chain().focus().toggleItalic().run()}
                         className={`cdp-bm-grid-btn${editor.isActive("italic") ? " active" : ""}`}
                         title="Itálico"
                       ><Italic size={14} /></button>
+                      {/* U — sublinhado */}
                       <button
                         onClick={() => editor.chain().focus().toggleUnderline().run()}
                         className={`cdp-bm-grid-btn${editor.isActive("underline") ? " active" : ""}`}
                         title="Sublinhado"
                       ><UnderlineIcon size={14} /></button>
+                      {/* 🔗 — link */}
+                      <button
+                        onClick={() => {
+                          const url = window.prompt("URL do link:", editor.getAttributes("link").href ?? "");
+                          if (url === null) return;
+                          if (url === "") { editor.chain().focus().unsetLink().run(); }
+                          else { editor.chain().focus().setLink({ href: url }).run(); }
+                        }}
+                        className={`cdp-bm-grid-btn${editor.isActive("link") ? " active" : ""}`}
+                        title="Link"
+                      ><Link size={14} /></button>
+                      {/* S — tachado */}
+                      <button
+                        onClick={() => editor.chain().focus().toggleStrike().run()}
+                        className={`cdp-bm-grid-btn${editor.isActive("strike") ? " active" : ""}`}
+                        title="Tachado"
+                      ><Strikethrough size={14} /></button>
+                      {/* </> — código */}
+                      <button
+                        onClick={() => editor.chain().focus().toggleCode().run()}
+                        className={`cdp-bm-grid-btn${editor.isActive("code") ? " active" : ""}`}
+                        title="Código"
+                      ><Code size={14} /></button>
+                      {/* Tx — limpar formatação */}
                       <button
                         onClick={() => editor.chain().focus().unsetAllMarks().run()}
                         className="cdp-bm-grid-btn"
@@ -983,38 +1009,6 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
                           title={c}
                         />
                       ))}
-                    </div>
-
-                    {/* Seção 3: Segunda linha (grid 4x) */}
-                    <div className="cdp-bm-grid">
-                      <button
-                        onClick={() => {
-                          const url = window.prompt("URL do link:", editor.getAttributes("link").href ?? "");
-                          if (url === null) return;
-                          if (url === "") { editor.chain().focus().unsetLink().run(); }
-                          else { editor.chain().focus().setLink({ href: url }).run(); }
-                        }}
-                        className={`cdp-bm-grid-btn${editor.isActive("link") ? " active" : ""}`}
-                        title="Link"
-                      ><Link size={14} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleStrike().run()}
-                        className={`cdp-bm-grid-btn${editor.isActive("strike") ? " active" : ""}`}
-                        title="Tachado"
-                      ><Strikethrough size={14} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleCode().run()}
-                        className={`cdp-bm-grid-btn${editor.isActive("code") ? " active" : ""}`}
-                        title="Código"
-                      ><Code size={14} /></button>
-                      <button
-                        className="cdp-bm-grid-btn"
-                        title="Fórmula"
-                        onClick={() => editor.chain().focus().toggleCode().run()}
-                      ><Sigma size={14} /></button>
-                      <button className="cdp-bm-grid-btn" title="Mais opções">
-                        <MoreHorizontal size={14} />
-                      </button>
                     </div>
 
                     {/* Divisor */}
