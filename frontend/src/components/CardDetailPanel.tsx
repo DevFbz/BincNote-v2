@@ -618,6 +618,7 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
 
   // Rich text editor for notes/description
   const debounce = useRef<number | null>(null);
+  const editorRef = useRef<ReturnType<typeof useEditor> | null>(null);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -646,6 +647,31 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
       attributes: {
         class: "cdp-editor-content",
       },
+      handlePaste: (_view: unknown, event: ClipboardEvent) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          if (item.type.startsWith("image/")) {
+            event.preventDefault();
+            const file = item.getAsFile();
+            if (!file) return true;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const dataUrl = e.target?.result as string;
+              if (dataUrl && editorRef.current) {
+                editorRef.current.chain().focus().setImage({ src: dataUrl }).run();
+              }
+            };
+            reader.readAsDataURL(file);
+            return true;
+          }
+        }
+        return false;
+      },
+    },
+    onCreate: ({ editor: ed }) => {
+      editorRef.current = ed;
     },
     onUpdate: ({ editor: e }) => {
       if (debounce.current) window.clearTimeout(debounce.current);
