@@ -815,6 +815,76 @@ body {
   position: relative;
 }
 
+/* ── Block type submenu (select thumbnail view) ── */
+.cdp-bm-block-menu {
+  display: none;
+  position: absolute;
+  top: 0;
+  left: 100%;
+  z-index: 100;
+  width: 240px;
+  max-height: 500px;
+  overflow-y: auto;
+  background: #252525;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 6px 0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #e8e8e8;
+  margin-left: 4px;
+}
+.cdp-bm-block-menu .cdp-bm-block-item {
+  display: flex;
+  align-items: center;
+  padding: 5px 10px;
+  cursor: pointer;
+  gap: 8px;
+  min-height: 32px;
+  transition: background 0.1s;
+}
+.cdp-bm-block-menu .cdp-bm-block-item:hover {
+  background: rgba(255,255,255,0.06);
+}
+.cdp-bm-block-menu .cdp-bm-block-item.active {
+  background: rgba(45, 100, 200, 0.2);
+  outline: 1px solid #2d64c8;
+  outline-offset: -1px;
+  border-radius: 4px;
+  margin: 0 2px;
+  padding: 5px 8px;
+}
+.cdp-bm-block-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #b0b0b0;
+}
+.cdp-bm-block-label {
+  flex: 1;
+  color: #e8e8e8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cdp-bm-block-check {
+  color: #2d64c0;
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+.cdp-bm-block-group-label {
+  padding: 6px 10px 2px;
+  color: #666;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 /* ── Bubble menu (caixa flutuante vertical estilo Notion) ── */
 .cdp-bubble-menu {
   width: 200px;

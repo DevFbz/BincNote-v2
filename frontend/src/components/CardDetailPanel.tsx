@@ -46,6 +46,7 @@ import {
   Heading1,
   Heading2,
   Heading3,
+  Heading4,
   Palette,
   Highlighter,
   ImageIcon,
@@ -61,6 +62,8 @@ import {
   Smile,
   Pen,
   SlidersHorizontal,
+  FileText,
+  Sigma,
 } from "lucide-react";
 
 import { api } from "../api/cliente";
@@ -628,7 +631,7 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
+        heading: { levels: [1, 2, 3, 4] },
       }),
       Placeholder.configure({ placeholder: "Adicione uma descrição ou notas..." }),
       Underline,
@@ -924,19 +927,177 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
                     className="cdp-bubble-menu"
                     tippyOptions={{ duration: 120, placement: "top", interactive: true }}
                   >
-                    {/* Seção 1: Seletor de estilo de texto */}
-                    <div className="cdp-bm-section">
-                      <button
-                        onClick={() => editor.chain().focus().setParagraph().run()}
-                        className="cdp-bm-selector"
-                      >
-                        <span className="cdp-bm-selector-icon">
-                          <span className="cdp-bm-t-icon">T</span>
-                        </span>
-                        <span className="cdp-bm-selector-text">Texto normal</span>
-                        <ChevronRight size={12} className="cdp-bm-selector-arrow" />
-                      </button>
-                    </div>
+                    {/* Seção 1: Seletor de estilo de texto com popup */}
+                                        <div className="cdp-bm-section" style={{ position: "relative" }}>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              const el = document.getElementById("cdp-bm-block-menu");
+                                              if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+                                            }}
+                                            className="cdp-bm-selector"
+                                          >
+                                            <span className="cdp-bm-selector-icon">
+                                              <span className="cdp-bm-t-icon">T</span>
+                                            </span>
+                                            <span className="cdp-bm-selector-text">Texto normal</span>
+                                            <ChevronRight size={12} className="cdp-bm-selector-arrow" />
+                                          </button>
+                                          {/* Submenu de tipo de bloco */}
+                                          <div id="cdp-bm-block-menu" className="cdp-bm-block-menu">
+                                            <div className="cdp-bm-block-item active">
+                                              <span className="cdp-bm-block-icon"><span className="cdp-bm-t-icon">T</span></span>
+                                              <span className="cdp-bm-block-label">Texto</span>
+                                              <span className="cdp-bm-block-check">✓</span>
+                                            </div>
+                                            <div className="cdp-bm-block-group-label">Títulos</div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><Heading1 size={16} /></span>
+                                              <span className="cdp-bm-block-label">H1 Título 1</span>
+                                            </div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><Heading2 size={16} /></span>
+                                              <span className="cdp-bm-block-label">H2 Título 2</span>
+                                            </div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><Heading3 size={16} /></span>
+                                              <span className="cdp-bm-block-label">H3 Título 3</span>
+                                            </div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><Heading4 size={16} /></span>
+                                              <span className="cdp-bm-block-label">H4 Título 4</span>
+                                            </div>
+                                            <div className="cdp-bm-block-group-label">Página</div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().setParagraph().run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
+                                              <span className="cdp-bm-block-label">📄 Página</span>
+                                            </div>
+                                            <div className="cdp-bm-block-item">
+                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
+                                              <span className="cdp-bm-block-label">📄➜ Página em</span>
+                                              <ChevronRight size={12} style={{ marginLeft: "auto", color: "#666" }} />
+                                            </div>
+                                            <div className="cdp-bm-block-group-label">Listas</div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleBulletList().run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><ListIcon size={16} /></span>
+                                              <span className="cdp-bm-block-label">:= Lista com marcadores</span>
+                                            </div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><ListOrdered size={16} /></span>
+                                              <span className="cdp-bm-block-label">1= Lista numerada</span>
+                                            </div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleTaskList().run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><CheckSquare size={16} /></span>
+                                              <span className="cdp-bm-block-label">☑= Lista de tarefas</span>
+                                            </div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><Quote size={16} /></span>
+                                              <span className="cdp-bm-block-label">{">="} Lista de alternantes</span>
+                                            </div>
+                                            <div className="cdp-bm-block-group-label">Blocos especiais</div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><Code size={16} /></span>
+                                              <span className="cdp-bm-block-label">{`</>`} Código</span>
+                                            </div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><Quote size={16} /></span>
+                                              <span className="cdp-bm-block-label">" Citação</span>
+                                            </div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => {
+                                                // Toggle callout / blockquote highlight
+                                                editor.chain().focus().toggleBlockquote().run();
+                                              }}
+                                            >
+                                              <span className="cdp-bm-block-icon"><Highlighter size={16} /></span>
+                                              <span className="cdp-bm-block-label">[T] Frase de destaque</span>
+                                            </div>
+                                            <div className="cdp-bm-block-item">
+                                              <span className="cdp-bm-block-icon"><Sigma size={16} /></span>
+                                              <span className="cdp-bm-block-label">[Σ] Equação em bloco</span>
+                                            </div>
+                                            <div className="cdp-bm-block-group-label">Títulos alternantes</div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><ChevronDown size={14} /></span>
+                                              <span className="cdp-bm-block-label">•H1 Título 1 alternante</span>
+                                            </div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><ChevronDown size={14} /></span>
+                                              <span className="cdp-bm-block-label">•H2 Título 2 alternante</span>
+                                            </div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><ChevronDown size={14} /></span>
+                                              <span className="cdp-bm-block-label">•H3 Título 3 alternante</span>
+                                            </div>
+                                            <div
+                                              className="cdp-bm-block-item"
+                                              onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
+                                            >
+                                              <span className="cdp-bm-block-icon"><ChevronDown size={14} /></span>
+                                              <span className="cdp-bm-block-label">•H4 Título 4 alternante</span>
+                                            </div>
+                                            <div className="cdp-bm-block-group-label">Colunas</div>
+                                            <div className="cdp-bm-block-item">
+                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
+                                              <span className="cdp-bm-block-label">⎢⎢ 2 colunas</span>
+                                            </div>
+                                            <div className="cdp-bm-block-item">
+                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
+                                              <span className="cdp-bm-block-label">⎢⎢⎢ 3 colunas</span>
+                                            </div>
+                                            <div className="cdp-bm-block-item">
+                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
+                                              <span className="cdp-bm-block-label">⎢⎢⎢⎢ 4 colunas</span>
+                                            </div>
+                                            <div className="cdp-bm-block-item">
+                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
+                                              <span className="cdp-bm-block-label">⎢⎢⎢⎢⎢ 5 colunas</span>
+                                            </div>
+                                          </div>
+                                        </div>
 
                     {/* Seção 2: Grid de ícones (2 linhas × 4 colunas) */}
                     <div className="cdp-bm-grid">
