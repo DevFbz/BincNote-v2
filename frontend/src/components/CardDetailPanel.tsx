@@ -14,9 +14,19 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEditor, EditorContent } from "@tiptap/react";
+import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
+
+import {
+  Bold,
+  Italic,
+  Strikethrough,
+  Code,
+  List as ListIcon,
+  ListOrdered,
+  Quote,
+} from "lucide-react";
 
 import { api } from "../api/cliente";
 import { atualizarCelula, getCell, getValorTexto } from "../api/grids";
@@ -52,7 +62,7 @@ function FieldIcon({ kind }: { kind: string }) {
     case "title":
       return <AlignLeft size={14} className={cls} />;
     default:
-      return <List size={14} className={cls} />;
+      return <ListIcon size={14} className={cls} />;
   }
 }
 
@@ -581,7 +591,9 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
   const debounce = useRef<number | null>(null);
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
       Placeholder.configure({ placeholder: "Adicione uma descrição ou notas..." }),
     ],
     content: "",
@@ -594,7 +606,6 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
     onUpdate: ({ editor: e }) => {
       if (debounce.current) window.clearTimeout(debounce.current);
       debounce.current = window.setTimeout(() => {
-        // In a future iteration, persist the content to the record
         window.dispatchEvent(new CustomEvent("card-text-selected", {
           detail: e.getText(),
         }));
@@ -781,7 +792,92 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
 
             {/* ── Notes / Rich text body ── */}
             <div className="cdp-notes-section">
-              {editor && <EditorContent editor={editor} />}
+              {editor && (
+                <>
+                  <BubbleMenu
+                    editor={editor}
+                    className="cdp-bubble-menu"
+                    tippyOptions={{ duration: 120, placement: "top" }}
+                  >
+                    <div className="cdp-bubble-group">
+                      <button
+                        onClick={() => editor.chain().focus().toggleBold().run()}
+                        className={`cdp-bubble-btn${editor.isActive("bold") ? " active" : ""}`}
+                        title="Negrito"
+                      >
+                        <Bold size={14} />
+                      </button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleItalic().run()}
+                        className={`cdp-bubble-btn${editor.isActive("italic") ? " active" : ""}`}
+                        title="Itálico"
+                      >
+                        <Italic size={14} />
+                      </button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleStrike().run()}
+                        className={`cdp-bubble-btn${editor.isActive("strike") ? " active" : ""}`}
+                        title="Tachado"
+                      >
+                        <Strikethrough size={14} />
+                      </button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleCode().run()}
+                        className={`cdp-bubble-btn${editor.isActive("code") ? " active" : ""}`}
+                        title="Código"
+                      >
+                        <Code size={14} />
+                      </button>
+                    </div>
+                    <div className="cdp-bubble-sep" />
+                    <div className="cdp-bubble-group">
+                      <button
+                        onClick={() => editor.chain().focus().toggleBulletList().run()}
+                        className={`cdp-bubble-btn${editor.isActive("bulletList") ? " active" : ""}`}
+                        title="Lista"
+                      >
+                        <ListIcon size={14} />
+                      </button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                        className={`cdp-bubble-btn${editor.isActive("orderedList") ? " active" : ""}`}
+                        title="Lista numerada"
+                      >
+                        <ListOrdered size={14} />
+                      </button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                        className={`cdp-bubble-btn${editor.isActive("blockquote") ? " active" : ""}`}
+                        title="Citação"
+                      >
+                        <Quote size={14} />
+                      </button>
+                    </div>
+                    <div className="cdp-bubble-sep" />
+                    <div className="cdp-bubble-group">
+                      <button
+                        onClick={() => {
+                          const heading = editor.isActive("heading", { level: 1 })
+                            ? false
+                            : editor.isActive("heading", { level: 2 })
+                            ? false
+                            : true;
+                          if (heading) {
+                            editor.chain().focus().toggleHeading({ level: 1 }).run();
+                          } else {
+                            editor.chain().focus().setParagraph().run();
+                          }
+                        }}
+                        className={`cdp-bubble-btn${editor.isActive("heading") ? " active" : ""}`}
+                        title="Título"
+                      >
+                        <span style={{ fontWeight: 700, fontSize: 13 }}>H</span>
+                      </button>
+                    </div>
+                  </BubbleMenu>
+                  <EditorContent editor={editor} />
+                </>
+              )}
             </div>
 
           </div>

@@ -812,6 +812,58 @@ body {
   padding-top: 0.5rem;
   border-top: 1px solid #252525;
   min-height: 200px;
+  position: relative;
+}
+
+/* ── Bubble menu ── */
+.cdp-bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #2a2a2a;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 4px 6px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+
+.cdp-bubble-group {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.cdp-bubble-sep {
+  width: 1px;
+  height: 20px;
+  background: #3a3a3a;
+  margin: 0 3px;
+}
+
+.cdp-bubble-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #a0a0a0;
+  cursor: pointer;
+  transition: background 80ms, color 80ms;
+}
+.cdp-bubble-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: #e0e0e0;
+}
+.cdp-bubble-btn.active {
+  background: rgba(75,130,254,0.2);
+  color: #4b82fe;
+}
+.cdp-bubble-btn.active-color {
+  background: rgba(231,76,60,0.2);
+  color: #e74c3c;
 }
 
 .cdp-editor-content {
@@ -821,6 +873,7 @@ body {
   font-size: 14px;
   line-height: 1.7;
   caret-color: var(--accent);
+  padding: 8px 0;
 }
 
 .cdp-editor-content p.is-editor-empty:first-child::before {
@@ -828,14 +881,40 @@ body {
   float: left;
   color: #3a3a3a;
   pointer-events: none;
-  height: 0;
 }
 
+/* Editor text styles */
+.cdp-editor-content h1 { font-size: 1.4em; font-weight: 700; margin: 0.6em 0 0.3em; color: #e8e8e8; }
+.cdp-editor-content h2 { font-size: 1.2em; font-weight: 600; margin: 0.5em 0 0.3em; color: #e0e0e0; }
+.cdp-editor-content h3 { font-size: 1.1em; font-weight: 600; margin: 0.4em 0 0.2em; color: #d8d8d8; }
+.cdp-editor-content ul,
+.cdp-editor-content ol { padding-left: 1.5em; margin: 0.4em 0; }
+.cdp-editor-content li { margin: 0.2em 0; }
+.cdp-editor-content blockquote {
+  border-left: 3px solid #4b82fe;
+  padding-left: 12px;
+  color: #999;
+  font-style: italic;
+  margin: 0.4em 0;
+}
+.cdp-editor-content code {
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  padding: 2px 5px;
+  font-size: 0.9em;
+  color: #e06c75;
+}
+.cdp-editor-content mark {
+  background: #fef08a;
+  color: #333;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+.cdp-editor-content s { color: #888; }
+.cdp-editor-content u { text-decoration: underline; }
+
 .cdp-editor-content p { margin: 0.3em 0; }
-.cdp-editor-content h1 { font-size: 1.5rem; font-weight: 700; color: #fff; margin: 1em 0 0.3em; }
-.cdp-editor-content h2 { font-size: 1.25rem; font-weight: 600; color: #fff; margin: 0.9em 0 0.3em; }
-.cdp-editor-content h3 { font-size: 1.1rem; font-weight: 600; color: #eee; margin: 0.8em 0 0.2em; }
-.cdp-editor-content ul, .cdp-editor-content ol { padding-left: 1.4rem; }
+
 .cdp-editor-content blockquote {
   border-left: 3px solid var(--accent);
   padding-left: 1rem;
