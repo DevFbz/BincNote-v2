@@ -815,82 +815,240 @@ body {
   position: relative;
 }
 
-/* ── Bubble menu (horizontal toolbar like reference) ── */
+/* ── Bubble menu (caixa flutuante vertical estilo Notion) ── */
 .cdp-bubble-menu {
-  display: flex;
-  align-items: center;
-  gap: 1px;
-  background: #232323;
+  width: 200px;
+  background: #1f1f1f;
   border: 1px solid #333;
-  border-radius: 6px;
-  padding: 3px 4px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-  flex-wrap: nowrap;
-  max-width: 580px;
-  overflow-x: auto;
+  border-radius: 10px;
+  padding: 6px 0;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #e8e8e8;
 }
 
-.cdp-bb-btn {
-  width: 26px;
-  height: 24px;
+/* Section wrapper */
+.cdp-bm-section {
+  padding: 0;
+}
+
+/* Seletor de estilo (Texto normal >) */
+.cdp-bm-selector {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  color: #e8e8e8;
+  cursor: pointer;
+  gap: 8px;
+  font-size: 13px;
+  text-align: left;
+  transition: background 0.1s;
+}
+.cdp-bm-selector:hover {
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+}
+.cdp-bm-selector-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #2a2a2a;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.cdp-bm-t-icon {
+  font-weight: 700;
+  font-size: 12px;
+  color: #ccc;
+}
+.cdp-bm-selector-text {
+  flex: 1;
+}
+.cdp-bm-selector-arrow {
+  color: #666;
+  flex-shrink: 0;
+}
+
+/* Grid de ícones (4 colunas) */
+.cdp-bm-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 4px 8px;
+}
+.cdp-bm-grid-btn {
+  width: 100%;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
   border: none;
-  border-radius: 3px;
-  color: #bbb;
-  cursor: pointer;
-  transition: all 0.1s ease;
-  font-size: 11px;
-  flex-shrink: 0;
-}
-.cdp-bb-btn:hover {
-  background: #3a3a3a;
-  color: #fff;
-}
-.cdp-bb-btn.active {
-  background: #0d6efd;
-  color: #fff;
-}
-
-.cdp-bb-sep {
-  width: 1px;
-  height: 16px;
-  background: #3a3a3a;
-  margin: 0 2px;
-  flex-shrink: 0;
-}
-
-.cdp-bb-palette {
-  display: none;
-  position: absolute;
-  top: 28px;
-  left: 0;
-  background: #232323;
-  border: 1px solid #333;
   border-radius: 4px;
-  padding: 3px;
-  gap: 2px;
-  z-index: 100;
-  flex-wrap: wrap;
-  width: auto;
-  max-width: 120px;
+  color: #ccc;
+  cursor: pointer;
+  transition: all 0.1s;
 }
-.cdp-bb-palette.show {
+.cdp-bm-grid-btn:hover {
+  background: #333;
+  color: #fff;
+}
+.cdp-bm-grid-btn.active {
+  background: #1a5fb4;
+  color: #fff;
+}
+
+/* Color popup */
+.cdp-bm-color-popup {
+  display: none;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 4px 10px 6px;
+}
+.cdp-bm-color-popup.show {
   display: flex;
 }
-.cdp-bb-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 2px;
+.cdp-bm-color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
   border: 1px solid #444;
   cursor: pointer;
   flex-shrink: 0;
 }
-.cdp-bb-color:hover {
-  border-color: #888;
+.cdp-bm-color-swatch:hover {
+  border-color: #fff;
   transform: scale(1.15);
+}
+
+/* Divisor */
+.cdp-bm-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+  margin: 4px 0;
+}
+
+/* Comentario row */
+.cdp-bm-comment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+}
+.cdp-bm-comment-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #ccc;
+  cursor: pointer;
+}
+.cdp-bm-comment-left:hover {
+  color: #fff;
+}
+.cdp-bm-comment-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.cdp-bm-icon-btn {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: #888;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.cdp-bm-icon-btn:hover {
+  background: #333;
+  color: #fff;
+}
+
+/* Section header (Habilidades) */
+.cdp-bm-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px 4px;
+  color: #888;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* AI items */
+.cdp-bm-ai-list {
+  padding: 0 0 2px;
+}
+.cdp-bm-ai-item {
+  display: block;
+  width: 100%;
+  padding: 5px 10px;
+  background: transparent;
+  border: none;
+  color: #e8e8e8;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.cdp-bm-ai-item:hover:not(.disabled) {
+  background: rgba(255,255,255,0.06);
+}
+.cdp-bm-ai-item.disabled {
+  color: #555;
+  cursor: not-allowed;
+}
+.cdp-bm-more-indicator {
+  display: flex;
+  justify-content: center;
+  padding: 2px 0 4px;
+  color: #666;
+}
+
+/* Footer */
+.cdp-bm-footer {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  gap: 6px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+.cdp-bm-footer-input-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 6px;
+}
+.cdp-bm-footer-sparkle {
+  color: #666;
+  flex-shrink: 0;
+}
+.cdp-bm-footer-input {
+  background: transparent;
+  border: none;
+  color: #e8e8e8;
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+}
+.cdp-bm-footer-input::placeholder {
+  color: #555;
+}
+.cdp-bm-footer-shortcut {
+  font-size: 11px;
+  color: #555;
+  flex-shrink: 0;
 }
 
 /* ── Floating menu (on empty line / new paragraph) ── */

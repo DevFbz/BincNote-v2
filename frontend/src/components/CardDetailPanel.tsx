@@ -57,6 +57,12 @@ import {
   Undo2,
   Redo2,
   Pilcrow,
+  ChevronRight,
+  MoreHorizontal,
+  Smile,
+  Pen,
+  SlidersHorizontal,
+  Sigma,
 } from "lucide-react";
 
 import { api } from "../api/cliente";
@@ -914,161 +920,146 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
                     </div>
                   </FloatingMenu>
 
-                  {/* BubbleMenu — aparece com texto selecionado */}
+                  {/* BubbleMenu — caixa flutuante estilo Notion */}
                   <BubbleMenu
                     editor={editor}
                     className="cdp-bubble-menu"
-                    tippyOptions={{ duration: 100, placement: "top" }}
+                    tippyOptions={{ duration: 120, placement: "top", interactive: true }}
                   >
-                    <button
-                      onClick={() => editor.chain().focus().toggleBold().run()}
-                      className={`cdp-bb-btn${editor.isActive("bold") ? " active" : ""}`}
-                      title="Negrito"
-                    ><Bold size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().toggleItalic().run()}
-                      className={`cdp-bb-btn${editor.isActive("italic") ? " active" : ""}`}
-                      title="Itálico"
-                    ><Italic size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().toggleUnderline().run()}
-                      className={`cdp-bb-btn${editor.isActive("underline") ? " active" : ""}`}
-                      title="Sublinhado"
-                    ><UnderlineIcon size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().toggleStrike().run()}
-                      className={`cdp-bb-btn${editor.isActive("strike") ? " active" : ""}`}
-                      title="Tachado"
-                    ><Strikethrough size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().toggleCode().run()}
-                      className={`cdp-bb-btn${editor.isActive("code") ? " active" : ""}`}
-                      title="Código"
-                    ><Code size={12} /></button>
-                    <button
-                      onClick={() => {
-                        const url = window.prompt("URL do link:", editor.getAttributes("link").href ?? "");
-                        if (url === null) return;
-                        if (url === "") { editor.chain().focus().unsetLink().run(); }
-                        else { editor.chain().focus().setLink({ href: url }).run(); }
-                      }}
-                      className={`cdp-bb-btn${editor.isActive("link") ? " active" : ""}`}
-                      title="Link"
-                    ><Link size={12} /></button>
-                    <div className="cdp-bb-sep" />
-                    <button
-                      onClick={() => {
-                        const el = document.getElementById("cdp-color-palette");
-                        if (el) el.style.display = el.style.display === "none" ? "flex" : "none";
-                      }}
-                      className={`cdp-bb-btn${editor.getAttributes("textStyle").color ? " active" : ""}`}
-                      title="Cor do texto"
-                    ><Palette size={12} /></button>
-                    <div id="cdp-color-palette" className="cdp-bb-palette">
+                    {/* Seção 1: Seletor de estilo de texto */}
+                    <div className="cdp-bm-section">
+                      <button
+                        onClick={() => editor.chain().focus().setParagraph().run()}
+                        className="cdp-bm-selector"
+                      >
+                        <span className="cdp-bm-selector-icon">
+                          <span className="cdp-bm-t-icon">T</span>
+                        </span>
+                        <span className="cdp-bm-selector-text">Texto normal</span>
+                        <ChevronRight size={12} className="cdp-bm-selector-arrow" />
+                      </button>
+                    </div>
+
+                    {/* Seção 2: Grid de formatação básica (4 colunas) */}
+                    <div className="cdp-bm-grid">
+                      <button
+                        onClick={() => {
+                          const el = document.getElementById("cdp-bm-color-popup");
+                          if (el) el.classList.toggle("show");
+                        }}
+                        className={`cdp-bm-grid-btn${editor.getAttributes("textStyle").color ? " active" : ""}`}
+                        title="Cor do texto"
+                      ><Palette size={14} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleBold().run()}
+                        className={`cdp-bm-grid-btn${editor.isActive("bold") ? " active" : ""}`}
+                        title="Negrito"
+                      ><Bold size={14} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleItalic().run()}
+                        className={`cdp-bm-grid-btn${editor.isActive("italic") ? " active" : ""}`}
+                        title="Itálico"
+                      ><Italic size={14} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleUnderline().run()}
+                        className={`cdp-bm-grid-btn${editor.isActive("underline") ? " active" : ""}`}
+                        title="Sublinhado"
+                      ><UnderlineIcon size={14} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().unsetAllMarks().run()}
+                        className="cdp-bm-grid-btn"
+                        title="Limpar formatação"
+                      ><RemoveFormatting size={14} /></button>
+                    </div>
+
+                    {/* Popup de cores */}
+                    <div id="cdp-bm-color-popup" className="cdp-bm-color-popup">
                       {["#e74c3c","#f39c12","#2ecc71","#3498db","#9b59b6","#1abc9c","#e67e22","#34495e"].map(c => (
                         <button
                           key={c}
                           onClick={() => editor.chain().focus().setColor(c).run()}
-                          className="cdp-bb-color"
                           style={{ backgroundColor: c }}
+                          className="cdp-bm-color-swatch"
                           title={c}
                         />
                       ))}
                     </div>
-                    <button
-                      onClick={() => {
-                        if (editor.isActive("highlight")) {
-                          editor.chain().focus().unsetHighlight().run();
-                        } else {
-                          editor.chain().focus().setHighlight({ color: "#fef08a" }).run();
-                        }
-                      }}
-                      className={`cdp-bb-btn${editor.isActive("highlight") ? " active" : ""}`}
-                      title="Marcador"
-                    ><Highlighter size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().unsetAllMarks().run()}
-                      className="cdp-bb-btn"
-                      title="Limpar formatação"
-                    ><RemoveFormatting size={12} /></button>
-                    <div className="cdp-bb-sep" />
-                    <button
-                      onClick={() => editor.chain().focus().undo().run()}
-                      className="cdp-bb-btn"
-                      title="Desfazer"
-                    ><Undo2 size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().redo().run()}
-                      className="cdp-bb-btn"
-                      title="Refazer"
-                    ><Redo2 size={12} /></button>
-                    <div className="cdp-bb-sep" />
-                    <button
-                      onClick={() => editor.chain().focus().sinkListItem("listItem").run()}
-                      className="cdp-bb-btn"
-                      title="Aumentar indentação"
-                    ><Indent size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().liftListItem("listItem").run()}
-                      className="cdp-bb-btn"
-                      title="Diminuir indentação"
-                    ><Outdent size={12} /></button>
-                    <div className="cdp-bb-sep" />
-                    <button
-                      onClick={() => editor.chain().focus().toggleBulletList().run()}
-                      className={`cdp-bb-btn${editor.isActive("bulletList") ? " active" : ""}`}
-                      title="Lista"
-                    ><ListIcon size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                      className={`cdp-bb-btn${editor.isActive("orderedList") ? " active" : ""}`}
-                      title="Lista numerada"
-                    ><ListOrdered size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                      className={`cdp-bb-btn${editor.isActive("blockquote") ? " active" : ""}`}
-                      title="Citação"
-                    ><Quote size={12} /></button>
-                    <div className="cdp-bb-sep" />
-                    <button
-                      onClick={() => editor.chain().focus().setTextAlign("left").run()}
-                      className={`cdp-bb-btn${editor.isActive({ textAlign: "left" }) ? " active" : ""}`}
-                      title="Alinhar esquerda"
-                    ><AlignLeft size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().setTextAlign("center").run()}
-                      className={`cdp-bb-btn${editor.isActive({ textAlign: "center" }) ? " active" : ""}`}
-                      title="Centralizar"
-                    ><AlignCenter size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().setTextAlign("right").run()}
-                      className={`cdp-bb-btn${editor.isActive({ textAlign: "right" }) ? " active" : ""}`}
-                      title="Alinhar direita"
-                    ><AlignRight size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().setTextAlign("justify").run()}
-                      className={`cdp-bb-btn${editor.isActive({ textAlign: "justify" }) ? " active" : ""}`}
-                      title="Justificar"
-                    ><AlignJustify size={12} /></button>
-                    <div className="cdp-bb-sep" />
-                    <button
-                      onClick={() => {
-                        const url = window.prompt("URL da imagem:");
-                        if (url) editor.chain().focus().setImage({ src: url }).run();
-                      }}
-                      className="cdp-bb-btn"
-                      title="Imagem"
-                    ><ImageIcon size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-                      className="cdp-bb-btn"
-                      title="Tabela"
-                    ><Table2 size={12} /></button>
-                    <button
-                      onClick={() => editor.chain().focus().setHorizontalRule().run()}
-                      className="cdp-bb-btn"
-                      title="Linha horizontal"
-                    ><Minus size={12} /></button>
+
+                    {/* Seção 3: Segunda linha (grid 4x) */}
+                    <div className="cdp-bm-grid">
+                      <button
+                        onClick={() => {
+                          const url = window.prompt("URL do link:", editor.getAttributes("link").href ?? "");
+                          if (url === null) return;
+                          if (url === "") { editor.chain().focus().unsetLink().run(); }
+                          else { editor.chain().focus().setLink({ href: url }).run(); }
+                        }}
+                        className={`cdp-bm-grid-btn${editor.isActive("link") ? " active" : ""}`}
+                        title="Link"
+                      ><Link size={14} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleStrike().run()}
+                        className={`cdp-bm-grid-btn${editor.isActive("strike") ? " active" : ""}`}
+                        title="Tachado"
+                      ><Strikethrough size={14} /></button>
+                      <button
+                        onClick={() => editor.chain().focus().toggleCode().run()}
+                        className={`cdp-bm-grid-btn${editor.isActive("code") ? " active" : ""}`}
+                        title="Código"
+                      ><Code size={14} /></button>
+                      <button
+                        className="cdp-bm-grid-btn"
+                        title="Fórmula"
+                        onClick={() => editor.chain().focus().toggleCode().run()}
+                      ><Sigma size={14} /></button>
+                      <button className="cdp-bm-grid-btn" title="Mais opções">
+                        <MoreHorizontal size={14} />
+                      </button>
+                    </div>
+
+                    {/* Divisor */}
+                    <div className="cdp-bm-divider" />
+
+                    {/* Seção 4: Comentário */}
+                    <div className="cdp-bm-comment-row">
+                      <div className="cdp-bm-comment-left">
+                        <MessageSquare size={14} />
+                        <span>Comentário</span>
+                      </div>
+                      <div className="cdp-bm-comment-right">
+                        <button className="cdp-bm-icon-btn" title="Reação"><Smile size={14} /></button>
+                        <button className="cdp-bm-icon-btn" title="Anotar"><Pen size={14} /></button>
+                      </div>
+                    </div>
+
+                    {/* Divisor */}
+                    <div className="cdp-bm-divider" />
+
+                    {/* Seção 5: Habilidades (IA) */}
+                    <div className="cdp-bm-section">
+                      <div className="cdp-bm-section-header">
+                        <span className="cdp-bm-section-title">Habilidades</span>
+                        <SlidersHorizontal size={13} />
+                      </div>
+                      <div className="cdp-bm-ai-list">
+                        <button className="cdp-bm-ai-item" onClick={() => alert("Melhorar escrita: funcionalidade em breve")}>Melhorar escrita</button>
+                        <button className="cdp-bm-ai-item" onClick={() => alert("Revisão: funcionalidade em breve")}>Revisão</button>
+                        <button className="cdp-bm-ai-item" onClick={() => alert("Explicar: funcionalidade em breve")}>Explicar</button>
+                        <button className="cdp-bm-ai-item disabled" disabled>Reformatar</button>
+                      </div>
+                      <div className="cdp-bm-more-indicator">
+                        <ChevronDown size={13} />
+                      </div>
+                    </div>
+
+                    {/* Rodapé: Edite com a IA */}
+                    <div className="cdp-bm-footer">
+                      <div className="cdp-bm-footer-input-wrap">
+                        <Sparkles size={12} className="cdp-bm-footer-sparkle" />
+                        <input type="text" placeholder="Edite com a IA" className="cdp-bm-footer-input" />
+                      </div>
+                      <span className="cdp-bm-footer-shortcut">Alt+⇧+E</span>
+                    </div>
                   </BubbleMenu>
                   <EditorContent editor={editor} />
                 </>
