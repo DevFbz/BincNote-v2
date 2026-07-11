@@ -144,7 +144,7 @@ function ItemArvore({
             className={({ isActive }) =>
               `flex items-center gap-1.5 px-2 py-1 rounded-md text-sm transition-colors min-w-0 ${
                 isActive
-                  ? "bg-surface-1 dark:bg-[#2e2e2e] text-txt font-medium"
+                  ? "bg-surface-1 bg-[#2e2e2e] text-txt font-medium"
                   : "text-txt-muted hover:bg-surface-1 dark:hover:bg-[#2e2e2e] hover:text-txt"
               }`
             }
@@ -210,7 +210,7 @@ function ItemArvore({
           {showMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-              <div className="absolute right-0 top-full mt-1 w-44 bg-white dark:bg-[#2e2e2e] rounded-lg shadow-xl border border-surface-4 dark:border-[#3e3e3e] p-1 z-50">
+              <div className="absolute right-0 top-full mt-1 w-44 bg-[#2e2e2e] rounded-lg shadow-xl border border-surface-4 border-[#3e3e3e] p-1 z-50">
                 <button
                   onClick={(e) => {
                     e.preventDefault();
@@ -223,7 +223,7 @@ function ItemArvore({
                   <Edit3 size={16} className="text-txt-muted" />
                   Renomear
                 </button>
-                <hr className="border-surface-4 dark:border-[#3e3e3e] mx-2 my-1" />
+                <hr className="border-surface-4 border-[#3e3e3e] mx-2 my-1" />
                 <button
                   onClick={(e) => {
                     e.preventDefault();

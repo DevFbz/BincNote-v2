@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -8,7 +8,8 @@ import {
 import { api, type Pagina } from "../api/cliente";
 import { usePagina } from "../api/paginas";
 import { buscarDatabasePorPagina, criarTemplateKanban } from "../api/grids";
-import { Editor } from "../components/Editor";
+import { docToBlocks, blocksToDoc, type BlockData } from "../components/blocks/types";
+import BlockEditor, { type BlockEditorHandle } from "../components/blocks/BlockEditor";
 import { BoardView } from "../components/BoardView";
 import { AIChatPanel } from "../components/AIChatPanel";
 import {
@@ -76,6 +77,7 @@ export function PaginaView({ id }: { id: number }) {
   const [abrirCapa, setAbrirCapa] = useState(false);
   const [dbId, setDbId] = useState<number | null>(null);
   const [mostrarTemplates, setMostrarTemplates] = useState(false);
+  const blockEditorRef = useRef<BlockEditorHandle | null>(null);
   const [abrirPainelTemplates, setAbrirPainelTemplates] = useState(false);
   const [aiAberto, setAiAberto] = useState(false);
   const [selectedText, setSelectedText] = useState<string>("");
@@ -183,6 +185,7 @@ export function PaginaView({ id }: { id: number }) {
     onSuccess: () => {
       setStatus("salvo");
       qc.invalidateQueries({ queryKey: ["arvore"] });
+      qc.invalidateQueries({ queryKey: ["pagina", id] });
       setTimeout(() => setStatus("ocioso"), 1500);
     },
     onError: () => setStatus("ocioso"),
@@ -287,7 +290,7 @@ export function PaginaView({ id }: { id: number }) {
             <ImageIcon size={14} /> {t("page.cover")}
           </button>
           {abrirCapa && (
-            <div className="absolute right-3 bottom-16 card p-3 flex flex-wrap gap-2 z-40 shadow-pop-lg bg-white dark:bg-[#2e2e2e] border border-surface-4 dark:border-[#3e3e3e]">
+            <div className="absolute right-3 bottom-16 card p-3 flex flex-wrap gap-2 z-40 shadow-pop-lg bg-[#2e2e2e] border border-surface-4 border-[#3e3e3e]">
               {CAPAS.map((c, i) => (
                 <button
                   key={i}
@@ -316,7 +319,7 @@ export function PaginaView({ id }: { id: number }) {
             {pagina.parent ? (
               <button
                 onClick={() => navigate(`/pagina/${pagina.parent}`)}
-                className="flex items-center gap-1.5 text-xs text-txt-muted hover:text-txt transition-colors shrink-0 p-1 -ml-1 rounded hover:bg-surface-1 dark:hover:bg-[#2e2e2e]"
+                className="flex items-center gap-1.5 text-xs text-txt-muted hover:text-txt transition-colors shrink-0 p-1 -ml-1 rounded hover:bg-surface-1 hover:bg-[#2e2e2e]"
               >
                 <ChevronLeft size={14} />
               </button>
@@ -337,7 +340,7 @@ export function PaginaView({ id }: { id: number }) {
             <div className="relative">
               <button
                 onClick={() => setShowParticular(!showParticular)}
-                className="flex items-center gap-1 px-2 py-1 text-[11px] text-txt-muted hover:text-txt hover:bg-surface-1 dark:hover:bg-[#2e2e2e] rounded transition-colors"
+                className="flex items-center gap-1 px-2 py-1 text-[11px] text-txt-muted hover:text-txt hover:bg-surface-1 hover:bg-[#2e2e2e] rounded transition-colors"
               >
                 <Lock size={12} />
                 Particular
@@ -345,13 +348,13 @@ export function PaginaView({ id }: { id: number }) {
               {showParticular && (
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setShowParticular(false)} />
-                  <div className="absolute top-full right-0 mt-1 w-44 bg-white dark:bg-[#2e2e2e] rounded-lg shadow-xl border border-surface-4 dark:border-[#3e3e3e] p-1.5 z-40 text-xs">
+                  <div className="absolute top-full right-0 mt-1 w-44 bg-[#2e2e2e] rounded-lg shadow-xl border border-surface-4 border-[#3e3e3e] p-1.5 z-40 text-xs">
                     <div className="px-2 py-1.5 text-txt-muted">Apenas você pode ver esta página</div>
                     <div className="flex items-center gap-2 px-2 py-1.5 text-txt">
                       <Lock size={14} />
                       Particular
                     </div>
-                    <button className="w-full text-left px-2 py-1.5 text-txt-muted hover:text-txt hover:bg-surface-3 dark:hover:bg-[#3e3e3e] rounded-md">
+                    <button className="w-full text-left px-2 py-1.5 text-txt-muted hover:text-txt hover:bg-surface-3 hover:bg-[#3e3e3e] rounded-md">
                       Compartilhar com equipe…
                     </button>
                   </div>
@@ -363,7 +366,7 @@ export function PaginaView({ id }: { id: number }) {
             <div className="relative">
               <button
                 onClick={() => setShowPageMenu(!showPageMenu)}
-                className="p-1.5 rounded hover:bg-surface-1 dark:hover:bg-[#2e2e2e] text-txt-muted hover:text-txt transition-colors"
+                className="p-1.5 rounded hover:bg-surface-1 hover:bg-[#2e2e2e] text-txt-muted hover:text-txt transition-colors"
                 title="Mais opções"
               >
                 <MoreHorizontal size={14} />
@@ -371,20 +374,20 @@ export function PaginaView({ id }: { id: number }) {
               {showPageMenu && (
                 <>
                   <div className="fixed inset-0 z-30" onClick={() => setShowPageMenu(false)} />
-                  <div className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-[#2e2e2e] rounded-lg shadow-xl border border-surface-4 dark:border-[#3e3e3e] p-1 z-40 text-xs">
+                  <div className="absolute top-full right-0 mt-1 w-48 bg-[#2e2e2e] rounded-lg shadow-xl border border-surface-4 border-[#3e3e3e] p-1 z-40 text-xs">
                     <button
                       onClick={renomear}
-                      className="flex items-center gap-2 px-2 py-1.5 w-full text-left text-txt hover:bg-surface-3 dark:hover:bg-[#3e3e3e] rounded transition-colors"
+                      className="flex items-center gap-2 px-2 py-1.5 w-full text-left text-txt hover:bg-surface-3 hover:bg-[#3e3e3e] rounded transition-colors"
                     >
                       ✏️ Renomear
                     </button>
                     <button
                       onClick={duplicar}
-                      className="flex items-center gap-2 px-2 py-1.5 w-full text-left text-txt hover:bg-surface-3 dark:hover:bg-[#3e3e3e] rounded transition-colors"
+                      className="flex items-center gap-2 px-2 py-1.5 w-full text-left text-txt hover:bg-surface-3 hover:bg-[#3e3e3e] rounded transition-colors"
                     >
                       📋 Duplicar
                     </button>
-                    <div className="border-t border-surface-3 dark:border-[#3e3e3e] my-1" />
+                    <div className="border-t border-surface-3 border-[#3e3e3e] my-1" />
                     <button
                       onClick={moverLixeira}
                       className="flex items-center gap-2 px-2 py-1.5 w-full text-left text-danger hover:bg-danger/10 rounded transition-colors"
@@ -399,7 +402,7 @@ export function PaginaView({ id }: { id: number }) {
             {/* Plus - create sibling page */}
             <button
               onClick={criarIrma}
-              className="p-1.5 rounded hover:bg-surface-1 dark:hover:bg-[#2e2e2e] text-txt-muted hover:text-txt transition-colors"
+              className="p-1.5 rounded hover:bg-surface-1 hover:bg-[#2e2e2e] text-txt-muted hover:text-txt transition-colors"
               title="Nova página"
             >
               <Plus size={14} />
@@ -416,22 +419,22 @@ export function PaginaView({ id }: { id: number }) {
             <div className="relative shrink-0">
               <button
                 onClick={() => setAbrirEmoji((v) => !v)}
-                className="text-5xl leading-none hover:opacity-80 transition-opacity p-1 -ml-1 rounded-lg hover:bg-surface-3 dark:hover:bg-[#3e3e3e]"
+                className="text-5xl leading-none hover:opacity-80 transition-opacity p-1 -ml-1 rounded-lg hover:bg-surface-3 hover:bg-[#3e3e3e]"
               >
                 {icone || "📄"}
               </button>
               {abrirEmoji && (
-                <div className="absolute left-0 top-16 card p-4 z-40 w-80 shadow-xl bg-white dark:bg-[#2e2e2e] border border-surface-4 dark:border-[#3e3e3e]">
-                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-surface-3 dark:border-[#3e3e3e]">
+                <div className="absolute left-0 top-16 card p-4 z-40 w-80 shadow-xl bg-[#2e2e2e] border border-surface-4 border-[#3e3e3e]">
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-surface-3 border-[#3e3e3e]">
                     <h3 className="text-sm font-semibold">Escolher ícone</h3>
-                    <button onClick={() => setAbrirEmoji(false)} className="text-xs text-txt-muted hover:text-txt p-1 rounded hover:bg-surface-3 dark:hover:bg-[#3e3e3e] transition-colors">✕</button>
+                    <button onClick={() => setAbrirEmoji(false)} className="text-xs text-txt-muted hover:text-txt p-1 rounded hover:bg-surface-3 hover:bg-[#3e3e3e] transition-colors">✕</button>
                   </div>
                   <div className="grid grid-cols-10 gap-1">
                     {EMOJIS_RAPIDOS.map((e) => (
                       <button
                         key={e}
                         onClick={() => { setIcone(e); salvar.mutate({ icone: e }); setAbrirEmoji(false); }}
-                        className="aspect-square text-lg hover:bg-surface-3 dark:hover:bg-[#3e3e3e] rounded-lg transition-all duration-150 hover:scale-110 active:scale-95"
+                        className="aspect-square text-lg hover:bg-surface-3 hover:bg-[#3e3e3e] rounded-lg transition-all duration-150 hover:scale-110 active:scale-95"
                       >
                         {e}
                       </button>
@@ -439,7 +442,7 @@ export function PaginaView({ id }: { id: number }) {
                   </div>
                   <button
                     onClick={() => { setIcone(""); salvar.mutate({ icone: "" }); setAbrirEmoji(false); }}
-                    className="mt-3 w-full text-xs text-txt-muted hover:text-danger py-1.5 px-3 rounded-lg hover:bg-danger/10 transition-colors border border-surface-3 dark:border-[#3e3e3e] hover:border-danger/30"
+                    className="mt-3 w-full text-xs text-txt-muted hover:text-danger py-1.5 px-3 rounded-lg hover:bg-danger/10 transition-colors border border-surface-3 border-[#3e3e3e] hover:border-danger/30"
                   >
                     Remover ícone
                   </button>
@@ -463,21 +466,21 @@ export function PaginaView({ id }: { id: number }) {
               <div className="flex items-center gap-2 mt-3 flex-wrap">
                 <button
                   onClick={() => setAbrirEmoji(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-txt-muted hover:text-txt hover:bg-surface-1 dark:hover:bg-[#2e2e2e] border border-surface-4 dark:border-[#3e3e3e] transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-txt-muted hover:text-txt hover:bg-surface-1 hover:bg-[#2e2e2e] border border-surface-4 border-[#3e3e3e] transition-colors"
                 >
                   <Smile size={14} />
                   Ícone
                 </button>
                 <button
                   onClick={() => setAbrirCapa(!abrirCapa)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-txt-muted hover:text-txt hover:bg-surface-1 dark:hover:bg-[#2e2e2e] border border-surface-4 dark:border-[#3e3e3e] transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-txt-muted hover:text-txt hover:bg-surface-1 hover:bg-[#2e2e2e] border border-surface-4 border-[#3e3e3e] transition-colors"
                 >
                   <ImageIcon size={14} />
                   {capa ? "Trocar capa" : "Capa"}
                 </button>
                 <button
                   onClick={() => setAbrirPainelTemplates(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-accent hover:text-white hover:bg-accent hover:border-accent border border-surface-4 dark:border-[#3e3e3e] transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs text-accent hover:text-white hover:bg-accent hover:border-accent border border-surface-4 border-[#3e3e3e] transition-colors"
                 >
                   <LayoutTemplate size={14} />
                   Templates
@@ -491,70 +494,50 @@ export function PaginaView({ id }: { id: number }) {
             <div className="mb-10">
               <p className="text-xs text-txt-faint uppercase tracking-wider mb-3 font-medium">Comece a usar</p>
               <div className="flex flex-wrap gap-2">
-                <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 dark:border-[#3e3e3e] hover:border-accent hover:bg-surface-1 dark:hover:bg-[#2e2e2e] transition-all">
+                <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 border-[#3e3e3e] hover:border-accent hover:bg-surface-1 hover:bg-[#2e2e2e] transition-all">
                   <Sparkles size={16} className="text-accent" />
                   Pedir à IA
                 </button>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 dark:border-[#3e3e3e] hover:border-accent hover:bg-surface-1 dark:hover:bg-[#2e2e2e] transition-all">
+                <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 border-[#3e3e3e] hover:border-accent hover:bg-surface-1 hover:bg-[#2e2e2e] transition-all">
                   <FileText size={16} className="text-accent" />
                   Anotações IA
                 </button>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 dark:border-[#3e3e3e] hover:border-accent hover:bg-surface-1 dark:hover:bg-[#2e2e2e] transition-all">
+                <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 border-[#3e3e3e] hover:border-accent hover:bg-surface-1 hover:bg-[#2e2e2e] transition-all">
                   <Database size={16} className="text-accent" />
                   Base de dados
                 </button>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 dark:border-[#3e3e3e] hover:border-accent hover:bg-surface-1 dark:hover:bg-[#2e2e2e] transition-all">
+                <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 border-[#3e3e3e] hover:border-accent hover:bg-surface-1 hover:bg-[#2e2e2e] transition-all">
                   <FormInput size={16} className="text-accent" />
                   Formulário
                 </button>
                 <button
                   onClick={() => setAbrirPainelTemplates(true)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 dark:border-[#3e3e3e] hover:border-accent hover:bg-surface-1 dark:hover:bg-[#2e2e2e] transition-all"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 border-[#3e3e3e] hover:border-accent hover:bg-surface-1 hover:bg-[#2e2e2e] transition-all"
                 >
                   <LayoutTemplate size={16} className="text-accent" />
                   Modelos
                 </button>
-                <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 dark:border-[#3e3e3e] hover:border-accent hover:bg-surface-1 dark:hover:bg-[#2e2e2e] transition-all">
+                <button className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-txt-muted hover:text-txt border border-surface-4 border-[#3e3e3e] hover:border-accent hover:bg-surface-1 hover:bg-[#2e2e2e] transition-all">
                   <MoreHorizontal size={16} className="text-txt-muted" />
                 </button>
               </div>
             </div>
           )}
 
-          {/* Template selection for empty pages */}
-          {mostrarTemplates && pagina.kind !== "database" && !isNewPage && (
-            <div className="mb-10 border-2 border-dashed border-surface-4 dark:border-[#3e3e3e] rounded-xl p-8">
-              <h2 className="text-lg font-semibold mb-1">Comece com um template</h2>
-              <p className="text-sm text-txt-muted mb-6">Escolha um modelo para iniciar sua página</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {TEMPLATES.map((tpl) => (
-                  <button
-                    key={tpl.id}
-                    onClick={() => aplicarTemplate(tpl.id)}
-                    className="card p-4 text-left hover:border-accent hover:shadow-lg transition-all group"
-                  >
-                    <div className="h-16 rounded-lg mb-3 flex items-center justify-center text-3xl transition-transform group-hover:scale-110"
-                         style={{ background: tpl.capa }}>
-                      {tpl.icone}
-                    </div>
-                    <div className="font-semibold text-sm">{tpl.nome}</div>
-                    <div className="text-xs text-txt-muted mt-0.5">{tpl.descricao}</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Main editor */}
           {pagina.kind === "database" ? (
             <div className="px-8 pb-6 flex-1 min-h-[400px]">
               <BoardView databaseId={dbId ?? 0} onOpenAI={() => setAiAberto(true)} />
             </div>
-          ) : !mostrarTemplates && (
-            <div className="min-h-[300px]">
-              <Editor
-                conteudo={pagina.conteudo || { type: "doc", content: [{ type: "paragraph" }] }}
-                onChange={(c) => salvarConteudo.mutate(c)}
+          ) : (
+            <div className="min-h-[300px] px-8 pb-6">
+              <BlockEditor
+                ref={blockEditorRef}
+                initialContent={pagina.conteudo ? docToBlocks(pagina.conteudo) : undefined}
+                onChange={(blocks) => {
+                  salvarConteudo.mutate(blocksToDoc(blocks));
+                }}
               />
             </div>
           )}
@@ -563,7 +546,7 @@ export function PaginaView({ id }: { id: number }) {
         {/* AI assistant FAB */}
         <button
           onClick={() => setAiAberto(true)}
-          className="fixed bottom-6 right-6 z-30 w-11 h-11 rounded-full bg-gradient-to-br from-[#a8dcff] to-[#8b5cf6] shadow-lg shadow-[#a8dcff]/20 border-0 flex items-center justify-center hover:scale-110 hover:shadow-[#a8dcff]/40 transition-all text-white"
+          className={`fixed bottom-6 right-6 z-[9999] w-11 h-11 rounded-full bg-gradient-to-br from-[#a8dcff] to-[#8b5cf6] shadow-lg shadow-[#a8dcff]/20 border-0 flex items-center justify-center hover:scale-110 hover:shadow-[#a8dcff]/40 transition-all text-white ${aiAberto ? 'opacity-0 pointer-events-none scale-90' : ''}`}
           title="Assistente IA"
         >
           <Sparkles size={18} />
@@ -577,20 +560,11 @@ export function PaginaView({ id }: { id: number }) {
           paginaTitulo={pagina?.titulo ?? ""}
           selectedText={selectedText}
           onApplyContent={(content) => {
-            // Convert AI markdown-like content into a TipTap document
-            const tiptapDoc = {
-              type: "doc",
-              content: [
-                {
-                  type: "paragraph",
-                  content: content.split("\n").map((line) => ({
-                    type: "text",
-                    text: line,
-                  })),
-                },
-              ],
-            };
-            salvarConteudo.mutate(tiptapDoc);
+            // Also dispatch event for CardDetailPanel (notes editor)
+            window.dispatchEvent(new CustomEvent('apply-notes-content', { detail: content }));
+            if (blockEditorRef.current) {
+              blockEditorRef.current.setContent(content, true);
+            }
             setAiAberto(false);
           }}
         />
@@ -600,17 +574,17 @@ export function PaginaView({ id }: { id: number }) {
       {abrirPainelTemplates && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setAbrirPainelTemplates(false)}>
           <div
-            className="bg-white dark:bg-[#1e1e1e] rounded-xl shadow-2xl border border-surface-4 dark:border-[#3e3e3e] w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col"
+            className="bg-[#1e1e1e] rounded-xl shadow-2xl border border-surface-4 border-[#3e3e3e] w-full max-w-3xl max-h-[80vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-4 dark:border-[#3e3e3e] shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-surface-4 border-[#3e3e3e] shrink-0">
               <div>
                 <h2 className="text-lg font-semibold text-txt">Escolher template</h2>
                 <p className="text-sm text-txt-muted mt-0.5">Modelos para agilizar seu trabalho</p>
               </div>
               <button
                 onClick={() => setAbrirPainelTemplates(false)}
-                className="p-1.5 rounded-md hover:bg-surface-3 dark:hover:bg-[#3e3e3e] text-txt-muted hover:text-txt transition-colors"
+                className="p-1.5 rounded-md hover:bg-surface-3 hover:bg-[#3e3e3e] text-txt-muted hover:text-txt transition-colors"
               >
                 ✕
               </button>
@@ -628,7 +602,7 @@ export function PaginaView({ id }: { id: number }) {
                       <button
                         key={item.id}
                         onClick={() => aplicarTemplateSimples(item.id)}
-                        className="flex items-start gap-3 p-3 rounded-lg border border-surface-4 dark:border-[#3e3e3e] hover:border-accent hover:bg-surface-2 dark:hover:bg-[#2e2e2e] transition-all text-left group"
+                        className="flex items-start gap-3 p-3 rounded-lg border border-surface-4 border-[#3e3e3e] hover:border-accent hover:bg-surface-2 hover:bg-[#2e2e2e] transition-all text-left group"
                       >
                         <span className="text-2xl shrink-0 mt-0.5">{item.icone}</span>
                         <div className="min-w-0">

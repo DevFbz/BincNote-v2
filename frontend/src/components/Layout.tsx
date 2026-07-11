@@ -11,10 +11,10 @@ function AjudaModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" onClick={onClose}>
       <div
-        className="bg-white dark:bg-[#1e1e1e] rounded-xl shadow-2xl border border-surface-4 dark:border-[#3e3e3e] w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col"
+        className="bg-[#1e1e1e] rounded-xl shadow-2xl border border-surface-4 border-[#3e3e3e] w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-4 dark:border-[#3e3e3e] shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-surface-4 border-[#3e3e3e] shrink-0">
           <div className="flex items-center gap-3">
             <HelpCircle size={22} className="text-accent" />
             <div>
@@ -63,7 +63,7 @@ function AjudaModal({ onClose }: { onClose: () => void }) {
 
 function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div className="pb-3 border-b border-surface-4 dark:border-[#3e3e3e] last:border-0 last:pb-0">
+    <div className="pb-3 border-b border-surface-4 border-[#3e3e3e] last:border-0 last:pb-0">
       <h3 className="text-sm font-semibold text-txt flex items-center gap-2 mb-2">
         <span className="text-accent">{icon}</span>
         {title}
@@ -117,12 +117,12 @@ export function Layout() {
 
   return (
     <div className="flex h-full w-full overflow-hidden" style={{ background: "var(--bg-app)" }}>
-      {/* Sidebar */}
+      {/* Sidebar - always fixed, translates in/out */}
       <aside
-        className={`w-64 shrink-0 flex flex-col border-r transition-all duration-300 ease-in-out ${
-          !aberta ? '-translate-x-full absolute left-0 z-50 h-full' : 'translate-x-0 relative'
+        className={`w-64 shrink-0 flex flex-col border-r fixed left-0 top-0 h-full z-40 transition-all duration-300 ease-in-out ${
+          aberta ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
-        style={{ background: "var(--bg-sidebar)", borderColor: "var(--divider)" }}
+        style={{ background: "var(--bg-sidebar)", borderColor: "var(--divider)", boxShadow: aberta ? '4px 0 24px rgba(0,0,0,0.3)' : 'none' }}
       >
         {/* Top bar */}
         <div className="flex items-center justify-between px-3 h-11 shrink-0">
@@ -140,7 +140,7 @@ export function Layout() {
           <div className="notion-divider" />
         </div>
         <div className="px-2 pb-2 shrink-0">
-          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-surface-1 dark:bg-[#2e2e2e] text-sm">
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-surface-1 bg-[#2e2e2e] text-sm">
             <Search size={14} className="text-txt-muted shrink-0" />
             <input
               placeholder="Buscar páginas e pastas…"
@@ -164,7 +164,7 @@ export function Layout() {
             className={({ isActive }) =>
               `flex items-center gap-2 px-2 py-1.5 rounded-md text-sm transition-colors ${
                 isActive
-                  ? "bg-surface-1 dark:bg-[#2e2e2e] text-txt font-medium"
+                  ? "bg-surface-1 bg-[#2e2e2e] text-txt font-medium"
                   : "text-txt-muted hover:bg-surface-1 dark:hover:bg-[#2e2e2e] hover:text-txt"
               }`
             }
@@ -193,7 +193,7 @@ export function Layout() {
               onClick={() => setShowNovoMenu(!showNovoMenu)}
               className="flex items-center gap-2 px-2 py-1.5 rounded-md w-full text-left text-sm text-txt hover:bg-surface-1 dark:hover:bg-[#2e2e2e] transition-colors font-medium"
             >
-              <span className="w-5 h-5 rounded bg-surface-1 dark:bg-[#2e2e2e] flex items-center justify-center shrink-0 border border-surface-4 dark:border-[#3e3e3e]">
+              <span className="w-5 h-5 rounded bg-surface-1 bg-[#2e2e2e] flex items-center justify-center shrink-0 border border-surface-4 border-[#3e3e3e]">
                 <Plus size={14} />
               </span>
               Novo
@@ -202,7 +202,7 @@ export function Layout() {
             {showNovoMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowNovoMenu(false)} />
-                <div className="absolute bottom-full left-2 mb-1.5 w-56 bg-white dark:bg-[#2e2e2e] rounded-lg shadow-xl border border-surface-4 dark:border-[#3e3e3e] p-1.5 z-50">
+                <div className="absolute bottom-full left-2 mb-1.5 w-56 bg-[#2e2e2e] rounded-lg shadow-xl border border-surface-4 border-[#3e3e3e] p-1.5 z-50">
                   <div className="text-xs font-medium text-txt-muted px-2 py-1.5 uppercase tracking-wider">Criar novo</div>
                   <button
                     onClick={criarPagina}
@@ -219,18 +219,22 @@ export function Layout() {
       </aside>
 
       {/* Mobile overlay */}
-      {!aberta && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={toggle} />
+      {aberta && (
+        <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={toggle} />
       )}
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col min-w-0 relative" style={{ background: "var(--bg-app)" }}>
+      <main className="flex-1 flex flex-col min-w-0 relative" style={{ background: "var(--bg-app)", marginLeft: aberta ? '256px' : '0', paddingLeft: !aberta ? '40px' : '0' }}>
         {!aberta && (
           <button
             onClick={toggle}
-            className="absolute top-2 left-2 z-10 p-1.5 rounded-md bg-surface-1 dark:bg-[#2e2e2e] border border-surface-4 dark:border-[#3e3e3e] hover:bg-surface-3 dark:hover:bg-[#3e3e3e] transition-colors text-txt-muted"
+            className="absolute top-0 left-0 z-20 w-10 h-9 flex items-center justify-center text-txt-muted hover:text-txt hover:bg-[#2a2a2a] transition-colors rounded-none border-r border-[var(--divider)] bg-[var(--bg-sidebar)]"
           >
-            <ChevronRight size={16} />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
           </button>
         )}
         <Outlet />

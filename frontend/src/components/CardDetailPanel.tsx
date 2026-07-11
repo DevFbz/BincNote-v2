@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   X,
   Sparkles,
@@ -14,59 +14,11 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEditor, EditorContent, BubbleMenu, FloatingMenu } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Placeholder from "@tiptap/extension-placeholder";
-import Underline from "@tiptap/extension-underline";
-import LinkExtension from "@tiptap/extension-link";
-import TextAlign from "@tiptap/extension-text-align";
-import { TextStyle } from "@tiptap/extension-text-style";
-import Color from "@tiptap/extension-color";
-import Highlight from "@tiptap/extension-highlight";
-import { Table } from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
-import ImageExtension from "@tiptap/extension-image";
-import HorizontalRule from "@tiptap/extension-horizontal-rule";
 
-import {
-  Bold,
-  Italic,
-  Strikethrough,
-  Code,
-  List as ListIcon,
-  ListOrdered,
-  Quote,
-  Underline as UnderlineIcon,
-  Link,
-  AlignCenter,
-  AlignJustify,
-  AlignRight,
-  Heading1,
-  Heading2,
-  Heading3,
-  Heading4,
-  Palette,
-  Highlighter,
-  ImageIcon,
-  Table2,
-  Minus,
-  RemoveFormatting,
-  Indent,
-  Outdent,
-  Undo2,
-  Redo2,
-  Pilcrow,
-  ChevronRight,
-  Smile,
-  Pen,
-  SlidersHorizontal,
-  FileText,
-  Sigma,
-} from "lucide-react";
+import { List as ListIcon } from "lucide-react";
 
 import { api } from "../api/cliente";
+import BlockEditor from "./blocks/BlockEditor";
 import { atualizarCelula, getCell, getValorTexto } from "../api/grids";
 import type { Record as GridRecord, Field } from "../api/grids";
 
@@ -537,6 +489,13 @@ function CommentItem({ text, createdAt }: { text: string; createdAt: string }) {
 export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh, onOpenAI }: Props) {
   const tituloField = fields?.find((f) => f.kind === "text" || f.kind === "title");
   const tituloFieldId = tituloField?.id ?? 0;
+  // Notes field: second text field (first after title), or any text field not the title
+  const notesField = useMemo(() => {
+    if (!fields) return undefined;
+    const textFields = fields.filter((f) => f.kind === "text" || f.kind === "title");
+    if (textFields.length <= 1) return undefined;
+    return textFields.find((f) => f.id !== tituloFieldId) ?? textFields[1];
+  }, [fields, tituloFieldId]);
 
   const [title, setTitle] = useState(
     record && tituloFieldId ? getValorTexto(record, tituloFieldId) || "" : ""
@@ -544,6 +503,12 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
   const [visible, setVisible] = useState(false);
   const [comments, setComments] = useState<Array<{ text: string; createdAt: string }>>([]);
   const [commentText, setCommentText] = useState("");
+  // Resizable panel width (persisted in localStorage)
+  const [panelWidth, setPanelWidth] = useState(() => {
+    const saved = localStorage.getItem("cdp-panel-width");
+    return saved ? Math.max(360, Math.min(960, Number(saved))) : 720;
+  });
+  const resizeRef = useRef<{ startX: number; startW: number } | null>(null);
 
   const titleRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
@@ -568,6 +533,33 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
+
+  // Resize handler
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!resizeRef.current) return;
+      const newW = resizeRef.current.startW - (e.clientX - resizeRef.current.startX);
+      const clamped = Math.max(360, Math.min(960, newW));
+      setPanelWidth(clamped);
+    };
+    const onMouseUp = () => {
+      if (!resizeRef.current) return;
+      resizeRef.current = null;
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
+  
+  // Persist panel width
+  useEffect(() => {
+    localStorage.setItem("cdp-panel-width", String(panelWidth));
+  }, [panelWidth]);
 
   // Title mutation
   const titleMutation = useMutation({
@@ -606,6 +598,24 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
     }
   }
 
+  // AI action handler — inserts generated content into the block editor notes
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
+
+  async function handleAIAction(acao: string) {
+    if (!blockEditorRef.current) return;
+    setAiLoading(acao);
+    try {
+      const res = await api.post<{ resultado: string }>("/ai/acao/", { acao, trecho: "" });
+      if (res.resultado) {
+        blockEditorRef.current.setContent(res.resultado);
+      }
+    } catch (err) {
+      console.error("IA action error:", err);
+    } finally {
+      setAiLoading(null);
+    }
+  }
+
   function handleAddComment() {
     if (!commentText.trim()) return;
     setComments((prev) => [
@@ -625,72 +635,41 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
     setTimeout(onClose, 280);
   }
 
-  // Rich text editor for notes/description
-  const debounce = useRef<number | null>(null);
-  const editorRef = useRef<ReturnType<typeof useEditor> | null>(null);
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3, 4] },
-      }),
-      Placeholder.configure({ placeholder: "Adicione uma descrição ou notas..." }),
-      Underline,
-      LinkExtension.configure({
-        openOnClick: false,
-        HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" },
-      }),
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
-      TextStyle,
-      Color,
-      Highlight.configure({ multicolor: true }),
-      Table.configure({ resizable: true }),
-      TableRow,
-      TableCell,
-      TableHeader,
-      ImageExtension.configure({ inline: false }),
-      HorizontalRule,
-    ],
-    content: "",
-    immediatelyRender: false,
-    editorProps: {
-      attributes: {
-        class: "cdp-editor-content",
-      },
-      handlePaste: (_view: unknown, event: ClipboardEvent) => {
-        const items = event.clipboardData?.items;
-        if (!items) return false;
-        for (let i = 0; i < items.length; i++) {
-          const item = items[i];
-          if (item.type.startsWith("image/")) {
-            event.preventDefault();
-            const file = item.getAsFile();
-            if (!file) return true;
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const dataUrl = e.target?.result as string;
-              if (dataUrl && editorRef.current) {
-                editorRef.current.chain().focus().setImage({ src: dataUrl }).run();
-              }
-            };
-            reader.readAsDataURL(file);
-            return true;
-          }
-        }
-        return false;
-      },
-    },
-    onCreate: ({ editor: ed }) => {
-      editorRef.current = ed;
-    },
-    onUpdate: ({ editor: e }) => {
-      if (debounce.current) window.clearTimeout(debounce.current);
-      debounce.current = window.setTimeout(() => {
-        window.dispatchEvent(new CustomEvent("card-text-selected", {
-          detail: e.getText(),
-        }));
-      }, 500);
-    },
-  });
+    // Load saved content from notes field
+  const notaSalva = notesField && record ? getCell(record, notesField.id)?.valor : null;
+  const conteudoInicial = notaSalva?.json ?? (notaSalva?.text ? { type: "doc", content: [{ type: "paragraph" }] } : null);
+
+  // Debounced save via atualizarCelula
+  const saveDebounce = useRef<number | null>(null);
+  const handleNotesChange = useCallback((docJson: any) => {
+    if (saveDebounce.current) window.clearTimeout(saveDebounce.current);
+    saveDebounce.current = window.setTimeout(() => {
+      if (notesField && record) {
+        atualizarCelula(record.id, notesField.id, { json: docJson }).catch(() => {});
+      }
+    }, 800);
+  }, [notesField, record]);
+
+  // Dispatch selected text to chatbot (for context tag)
+  const handleBlockSelect = useCallback((text: string) => {
+    if (text.trim()) {
+      window.dispatchEvent(new CustomEvent('card-text-selected', { detail: text }));
+    }
+  }, []);
+
+  // Listen for AI content to auto-apply to the notes editor
+  const blockEditorRef = useRef<{ setContent: (html: string) => void } | null>(null);
+  useEffect(() => {
+    const handler = (e: CustomEvent<string>) => {
+      if (!notesField || !record) return;
+      if (blockEditorRef.current) {
+        blockEditorRef.current.setContent(e.detail);
+      }
+    };
+    document.addEventListener('apply-notes-content', handler as EventListener);
+    return () => document.removeEventListener('apply-notes-content', handler as EventListener);
+  }, [notesField, record]);
+    
 
   // Property fields - exclude specific fields by name
   const EXCLUDED_FIELD_NAMES = ["titulo", "título", "responsavel", "responsável"];
@@ -783,26 +762,27 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
         onClick={handleClose}
       />
 
-      {/* Panel — full-width slide-in */}
+      {/* Panel — resizable slide-in */}
       <div
         className="cdp-panel"
-        style={{ transform: visible ? "translateX(0)" : "translateX(100%)" }}
+        style={{ transform: visible ? "translateX(0)" : "translateX(100%)", width: panelWidth }}
       >
+        {/* Resize handle */}
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault();
+            resizeRef.current = { startX: e.clientX, startW: panelWidth };
+            document.body.style.cursor = "ew-resize";
+            document.body.style.userSelect = "none";
+          }}
+          className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-accent/20 active:bg-accent/30 transition-colors z-10"
+        />
         {/* Top bar */}
         <div className="cdp-topbar">
           <div className="cdp-topbar-left">
             <span className="cdp-topbar-id">ID #{record.id}</span>
           </div>
           <div className="cdp-topbar-right">
-            {onOpenAI && (
-              <button
-                onClick={onOpenAI}
-                className="cdp-icon-btn"
-                title="Assistente IA"
-              >
-                <Sparkles size={15} />
-              </button>
-            )}
             <button onClick={handleClose} className="cdp-icon-btn" title="Fechar">
               <X size={16} />
             </button>
@@ -871,354 +851,12 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
 
             {/* ── Notes / Rich text body ── */}
             <div className="cdp-notes-section">
-              {editor && (
-                <>
-                  {/* FloatingMenu — aparece ao clicar em linha vazia / novo parágrafo */}
-                  <FloatingMenu
-                    editor={editor}
-                    className="cdp-float-menu"
-                    tippyOptions={{ duration: 100, placement: "top-start" }}
-                  >
-                    <div className="cdp-float-group">
-                      <button
-                        onClick={() => editor.chain().focus().setParagraph().run()}
-                        className={`cdp-float-btn${editor.isActive("paragraph") ? " active" : ""}`}
-                        title="Texto normal"
-                      ><Pilcrow size={14} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                        className={`cdp-float-btn${editor.isActive("heading", { level: 1 }) ? " active" : ""}`}
-                        title="Título 1"
-                      ><Heading1 size={14} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                        className={`cdp-float-btn${editor.isActive("heading", { level: 2 }) ? " active" : ""}`}
-                        title="Título 2"
-                      ><Heading2 size={14} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                        className={`cdp-float-btn${editor.isActive("heading", { level: 3 }) ? " active" : ""}`}
-                        title="Título 3"
-                      ><Heading3 size={14} /></button>
-                    </div>
-                    <div className="cdp-float-sep" />
-                    <div className="cdp-float-group">
-                      <button
-                        onClick={() => editor.chain().focus().toggleBulletList().run()}
-                        className={`cdp-float-btn${editor.isActive("bulletList") ? " active" : ""}`}
-                        title="Lista"
-                      ><ListIcon size={14} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                        className={`cdp-float-btn${editor.isActive("orderedList") ? " active" : ""}`}
-                        title="Lista numerada"
-                      ><ListOrdered size={14} /></button>
-                      <button
-                        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                        className={`cdp-float-btn${editor.isActive("blockquote") ? " active" : ""}`}
-                        title="Citação"
-                      ><Quote size={14} /></button>
-                    </div>
-                  </FloatingMenu>
-
-                  {/* BubbleMenu — caixa flutuante estilo Notion */}
-                  <BubbleMenu
-                    editor={editor}
-                    className="cdp-bubble-menu"
-                    tippyOptions={{ duration: 120, placement: "top", interactive: true }}
-                  >
-                    {/* Seção 1: Seletor de estilo de texto com popup */}
-                                        <div className="cdp-bm-section" style={{ position: "relative" }}>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              const el = document.getElementById("cdp-bm-block-menu");
-                                              if (el) el.style.display = el.style.display === "none" ? "block" : "none";
-                                            }}
-                                            className="cdp-bm-selector"
-                                          >
-                                            <span className="cdp-bm-selector-icon">
-                                              <span className="cdp-bm-t-icon">T</span>
-                                            </span>
-                                            <span className="cdp-bm-selector-text">Texto normal</span>
-                                            <ChevronRight size={12} className="cdp-bm-selector-arrow" />
-                                          </button>
-                                          {/* Submenu de tipo de bloco */}
-                                          <div id="cdp-bm-block-menu" className="cdp-bm-block-menu">
-                                            <div className="cdp-bm-block-item active">
-                                              <span className="cdp-bm-block-icon"><span className="cdp-bm-t-icon">T</span></span>
-                                              <span className="cdp-bm-block-label">Texto</span>
-                                              <span className="cdp-bm-block-check">✓</span>
-                                            </div>
-                                            <div className="cdp-bm-block-group-label">Títulos</div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><Heading1 size={16} /></span>
-                                              <span className="cdp-bm-block-label">H1 Título 1</span>
-                                            </div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><Heading2 size={16} /></span>
-                                              <span className="cdp-bm-block-label">H2 Título 2</span>
-                                            </div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><Heading3 size={16} /></span>
-                                              <span className="cdp-bm-block-label">H3 Título 3</span>
-                                            </div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><Heading4 size={16} /></span>
-                                              <span className="cdp-bm-block-label">H4 Título 4</span>
-                                            </div>
-                                            <div className="cdp-bm-block-group-label">Página</div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().setParagraph().run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
-                                              <span className="cdp-bm-block-label">📄 Página</span>
-                                            </div>
-                                            <div className="cdp-bm-block-item">
-                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
-                                              <span className="cdp-bm-block-label">📄➜ Página em</span>
-                                              <ChevronRight size={12} style={{ marginLeft: "auto", color: "#666" }} />
-                                            </div>
-                                            <div className="cdp-bm-block-group-label">Listas</div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleBulletList().run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><ListIcon size={16} /></span>
-                                              <span className="cdp-bm-block-label">:= Lista com marcadores</span>
-                                            </div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><ListOrdered size={16} /></span>
-                                              <span className="cdp-bm-block-label">1= Lista numerada</span>
-                                            </div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleTaskList().run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><CheckSquare size={16} /></span>
-                                              <span className="cdp-bm-block-label">☑= Lista de tarefas</span>
-                                            </div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><Quote size={16} /></span>
-                                              <span className="cdp-bm-block-label">{">="} Lista de alternantes</span>
-                                            </div>
-                                            <div className="cdp-bm-block-group-label">Blocos especiais</div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><Code size={16} /></span>
-                                              <span className="cdp-bm-block-label">{`</>`} Código</span>
-                                            </div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><Quote size={16} /></span>
-                                              <span className="cdp-bm-block-label">" Citação</span>
-                                            </div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => {
-                                                // Toggle callout / blockquote highlight
-                                                editor.chain().focus().toggleBlockquote().run();
-                                              }}
-                                            >
-                                              <span className="cdp-bm-block-icon"><Highlighter size={16} /></span>
-                                              <span className="cdp-bm-block-label">[T] Frase de destaque</span>
-                                            </div>
-                                            <div className="cdp-bm-block-item">
-                                              <span className="cdp-bm-block-icon"><Sigma size={16} /></span>
-                                              <span className="cdp-bm-block-label">[Σ] Equação em bloco</span>
-                                            </div>
-                                            <div className="cdp-bm-block-group-label">Títulos alternantes</div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><ChevronDown size={14} /></span>
-                                              <span className="cdp-bm-block-label">•H1 Título 1 alternante</span>
-                                            </div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><ChevronDown size={14} /></span>
-                                              <span className="cdp-bm-block-label">•H2 Título 2 alternante</span>
-                                            </div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><ChevronDown size={14} /></span>
-                                              <span className="cdp-bm-block-label">•H3 Título 3 alternante</span>
-                                            </div>
-                                            <div
-                                              className="cdp-bm-block-item"
-                                              onClick={() => editor.chain().focus().toggleHeading({ level: 4 }).run()}
-                                            >
-                                              <span className="cdp-bm-block-icon"><ChevronDown size={14} /></span>
-                                              <span className="cdp-bm-block-label">•H4 Título 4 alternante</span>
-                                            </div>
-                                            <div className="cdp-bm-block-group-label">Colunas</div>
-                                            <div className="cdp-bm-block-item">
-                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
-                                              <span className="cdp-bm-block-label">⎢⎢ 2 colunas</span>
-                                            </div>
-                                            <div className="cdp-bm-block-item">
-                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
-                                              <span className="cdp-bm-block-label">⎢⎢⎢ 3 colunas</span>
-                                            </div>
-                                            <div className="cdp-bm-block-item">
-                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
-                                              <span className="cdp-bm-block-label">⎢⎢⎢⎢ 4 colunas</span>
-                                            </div>
-                                            <div className="cdp-bm-block-item">
-                                              <span className="cdp-bm-block-icon"><FileText size={16} /></span>
-                                              <span className="cdp-bm-block-label">⎢⎢⎢⎢⎢ 5 colunas</span>
-                                            </div>
-                                          </div>
-                                        </div>
-
-                    {/* Seção 2: Grid de ícones (2 linhas × 4 colunas) */}
-                    <div className="cdp-bm-grid">
-                      {/* A — cor do texto */}
-                      <button
-                        onClick={() => {
-                          const el = document.getElementById("cdp-bm-color-popup");
-                          if (el) el.classList.toggle("show");
-                        }}
-                        className={`cdp-bm-grid-btn${editor.getAttributes("textStyle").color ? " active" : ""}`}
-                        title="Cor do texto"
-                      ><Palette size={14} /></button>
-                      {/* B — negrito */}
-                      <button
-                        onClick={() => editor.chain().focus().toggleBold().run()}
-                        className={`cdp-bm-grid-btn${editor.isActive("bold") ? " active" : ""}`}
-                        title="Negrito"
-                      ><Bold size={14} /></button>
-                      {/* I — itálico */}
-                      <button
-                        onClick={() => editor.chain().focus().toggleItalic().run()}
-                        className={`cdp-bm-grid-btn${editor.isActive("italic") ? " active" : ""}`}
-                        title="Itálico"
-                      ><Italic size={14} /></button>
-                      {/* U — sublinhado */}
-                      <button
-                        onClick={() => editor.chain().focus().toggleUnderline().run()}
-                        className={`cdp-bm-grid-btn${editor.isActive("underline") ? " active" : ""}`}
-                        title="Sublinhado"
-                      ><UnderlineIcon size={14} /></button>
-                      {/* 🔗 — link */}
-                      <button
-                        onClick={() => {
-                          const url = window.prompt("URL do link:", editor.getAttributes("link").href ?? "");
-                          if (url === null) return;
-                          if (url === "") { editor.chain().focus().unsetLink().run(); }
-                          else { editor.chain().focus().setLink({ href: url }).run(); }
-                        }}
-                        className={`cdp-bm-grid-btn${editor.isActive("link") ? " active" : ""}`}
-                        title="Link"
-                      ><Link size={14} /></button>
-                      {/* S — tachado */}
-                      <button
-                        onClick={() => editor.chain().focus().toggleStrike().run()}
-                        className={`cdp-bm-grid-btn${editor.isActive("strike") ? " active" : ""}`}
-                        title="Tachado"
-                      ><Strikethrough size={14} /></button>
-                      {/* </> — código */}
-                      <button
-                        onClick={() => editor.chain().focus().toggleCode().run()}
-                        className={`cdp-bm-grid-btn${editor.isActive("code") ? " active" : ""}`}
-                        title="Código"
-                      ><Code size={14} /></button>
-                      {/* Tx — limpar formatação */}
-                      <button
-                        onClick={() => editor.chain().focus().unsetAllMarks().run()}
-                        className="cdp-bm-grid-btn"
-                        title="Limpar formatação"
-                      ><RemoveFormatting size={14} /></button>
-                    </div>
-
-                    {/* Popup de cores */}
-                    <div id="cdp-bm-color-popup" className="cdp-bm-color-popup">
-                      {["#e74c3c","#f39c12","#2ecc71","#3498db","#9b59b6","#1abc9c","#e67e22","#34495e"].map(c => (
-                        <button
-                          key={c}
-                          onClick={() => editor.chain().focus().setColor(c).run()}
-                          style={{ backgroundColor: c }}
-                          className="cdp-bm-color-swatch"
-                          title={c}
-                        />
-                      ))}
-                    </div>
-
-                    {/* Divisor */}
-                    <div className="cdp-bm-divider" />
-
-                    {/* Seção 4: Comentário */}
-                    <div className="cdp-bm-comment-row">
-                      <div className="cdp-bm-comment-left">
-                        <MessageSquare size={14} />
-                        <span>Comentário</span>
-                      </div>
-                      <div className="cdp-bm-comment-right">
-                        <button className="cdp-bm-icon-btn" title="Reação"><Smile size={14} /></button>
-                        <button className="cdp-bm-icon-btn" title="Anotar"><Pen size={14} /></button>
-                      </div>
-                    </div>
-
-                    {/* Divisor */}
-                    <div className="cdp-bm-divider" />
-
-                    {/* Seção 5: Habilidades (IA) */}
-                    <div className="cdp-bm-section">
-                      <div className="cdp-bm-section-header">
-                        <span className="cdp-bm-section-title">Habilidades</span>
-                        <SlidersHorizontal size={13} />
-                      </div>
-                      <div className="cdp-bm-ai-list">
-                        <button className="cdp-bm-ai-item" onClick={() => alert("Melhorar escrita: funcionalidade em breve")}>Melhorar escrita</button>
-                        <button className="cdp-bm-ai-item" onClick={() => alert("Revisão: funcionalidade em breve")}>Revisão</button>
-                        <button className="cdp-bm-ai-item" onClick={() => alert("Explicar: funcionalidade em breve")}>Explicar</button>
-                        <button className="cdp-bm-ai-item disabled" disabled>Reformatar</button>
-                      </div>
-                      <div className="cdp-bm-more-indicator">
-                        <ChevronDown size={13} />
-                      </div>
-                    </div>
-
-                    {/* Rodapé: Edite com a IA */}
-                    <div className="cdp-bm-footer">
-                      <div className="cdp-bm-footer-input-wrap">
-                        <Sparkles size={12} className="cdp-bm-footer-sparkle" />
-                        <input type="text" placeholder="Edite com a IA" className="cdp-bm-footer-input" />
-                      </div>
-                      <span className="cdp-bm-footer-shortcut">Alt+⇧+E</span>
-                    </div>
-                  </BubbleMenu>
-                  <EditorContent editor={editor} />
-                </>
-              )}
+              <BlockEditor
+                ref={blockEditorRef}
+                initialContent={conteudoInicial}
+                onChange={handleNotesChange}
+                onSelect={handleBlockSelect}
+              />
             </div>
 
           </div>

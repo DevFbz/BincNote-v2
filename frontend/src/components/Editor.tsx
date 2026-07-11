@@ -7,9 +7,38 @@ import Highlight from "@tiptap/extension-highlight";
 import Underline from "@tiptap/extension-underline";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
+import Typography from "@tiptap/extension-typography";
+import { Extension, InputRule } from "@tiptap/core";
+import { marked } from "marked";
 import { Plus, Type, Heading1, Heading2, Heading3, List, ListOrdered, CheckSquare, Quote, Code, Minus } from "lucide-react";
 
 import { t } from "../i18n";
+
+// --- Custom extensions ---
+
+const TaskListShortcut = Extension.create({
+  name: "taskListShortcut",
+  addInputRules() {
+    return [
+      new InputRule({
+        find: /\[\]\s$/,
+        handler: ({ range, chain }) => {
+          chain().deleteRange(range).toggleTaskList().run();
+        },
+      }),
+      new InputRule({
+        find: /\[x\]\s$/,
+        handler: ({ range, chain }) => {
+          chain()
+            .deleteRange(range)
+            .toggleTaskList()
+            .updateAttributes("taskItem", { checked: true })
+            .run();
+        },
+      }),
+    ];
+  },
+});
 
 interface EditorProps {
   conteudo: object;
@@ -27,16 +56,42 @@ export function Editor({ conteudo, onChange }: EditorProps) {
       Link.configure({ openOnClick: false }),
       TaskList,
       TaskItem.configure({ nested: true }),
+      Typography,
+      TaskListShortcut,
       Placeholder.configure({ placeholder: t("editor.placeholder") }),
     ],
     content: conteudo,
     immediatelyRender: false,
     editorProps: {
-      attributes: { class: "prose dark:prose-invert max-w-none min-h-[55vh] py-6 outline-none" },
+      attributes: { class: "prose dark:prose-invert max-w-none min-h-[55vh] py-6 outline-none", spellcheck: "true" },
+      handlePaste: (_view: unknown, event: ClipboardEvent) => {
+        const text = event.clipboardData?.getData("text/plain");
+        if (text && /^#{1,3}\s|^- \[|^- |^\d+\.\s|^> |^```/.test(text.trim())) {
+          event.preventDefault();
+          const html = marked.parse(text);
+          editor?.commands.insertContent(html);
+          return true;
+        }
+        return false;
+      },
     },
     onUpdate: ({ editor }) => {
       if (debounce.current) window.clearTimeout(debounce.current);
       debounce.current = window.setTimeout(() => onChange(editor.getJSON()), 500);
+    },
+    onCreate: ({ editor: ed }) => {
+      let selDebounce: ReturnType<typeof setTimeout> | null = null;
+      ed.on('selectionUpdate', () => {
+        if (selDebounce) clearTimeout(selDebounce);
+        selDebounce = setTimeout(() => {
+          const { from, to } = ed.state.selection;
+          if (from === to) return;
+          const texto = ed.state.doc.textBetween(from, to);
+          if (texto.trim()) {
+            window.dispatchEvent(new CustomEvent('card-text-selected', { detail: texto }));
+          }
+        }, 300);
+      });
     },
   });
 

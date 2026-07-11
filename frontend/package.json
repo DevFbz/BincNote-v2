@@ -30,14 +30,17 @@
     "@tiptap/extension-task-list": "^2.5.9",
     "@tiptap/extension-text-align": "^2.27.2",
     "@tiptap/extension-text-style": "^2.27.2",
+    "@tiptap/extension-typography": "^3.27.3",
     "@tiptap/extension-underline": "^2.27.2",
     "@tiptap/pm": "^2.5.9",
     "@tiptap/react": "^2.5.9",
     "@tiptap/starter-kit": "^2.5.9",
     "lucide-react": "^0.408.0",
+    "marked": "^18.0.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.24.1",
+    "tiptap-extension-resize-image": "^1.4.4",
     "zustand": "^4.5.4"
   },
   "devDependencies": {

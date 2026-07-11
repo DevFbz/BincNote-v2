@@ -64,6 +64,13 @@ function getSelectValue(record: GridRecord, fieldId: number): string | null {
   return c?.valor?.label ?? null;
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 // ── ColumnContainer ────────────────────────────────────────────────────
 function ColumnContainer({
   column,
@@ -108,7 +115,10 @@ function ColumnContainer({
   return (
     <div
       ref={setNodeRef}
-      style={style}
+      style={{
+        ...style,
+        ...(column.bg ? { backgroundColor: column.bg, borderTop: `3px solid ${column.dot}`, borderRadius: '8px', padding: '8px' } : {}),
+      }}
       className="flex flex-col flex-1 min-w-0 shrink-0"
     >
       {/* Column header */}
@@ -143,6 +153,7 @@ function ColumnContainer({
               key={card.id}
               card={card}
               overId={overId}
+              cardColor={column.dot}
               onDelete={() => onDelete(card.id)}
               onClick={() => onCardClick(card.id)}
             />
@@ -203,11 +214,13 @@ function DraggableCard({
   overId,
   onDelete,
   onClick,
+  cardColor,
 }: {
   card: BoardCard;
   overId: string | null;
   onDelete: () => void;
   onClick: () => void;
+  cardColor?: string;
 }) {
   const {
     attributes,
@@ -238,16 +251,22 @@ function DraggableCard({
         <div className="absolute -top-[3px] left-2 right-2 h-[3px] bg-[#3b82f6] rounded-full shadow-[0_0_8px_#3b82f6cc] z-10" />
       )}
       <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); onClick(); }}>
-        <CardContent card={card} onDelete={onDelete} />
+        <CardContent card={card} onDelete={onDelete} cardColor={cardColor} />
       </div>
     </div>
   );
 }
 
 // ── Card Content ─────────────────────────────────────────────────────
-function CardContent({ card, onDelete }: { card: BoardCard; onDelete?: () => void }) {
+function CardContent({ card, onDelete, cardColor }: { card: BoardCard; onDelete?: () => void; cardColor?: string }) {
   return (
-    <div className="px-3 py-2.5 rounded-lg bg-[#1e1e1e] border border-[#2e2e2e] hover:bg-[#252525] transition-colors cursor-grab active:cursor-grabbing shadow-sm flex items-center group">
+    <div
+      className="px-3 py-2.5 rounded-lg border hover:bg-[#252525] transition-colors cursor-grab active:cursor-grabbing shadow-sm flex items-center group"
+      style={{
+        background: cardColor ? hexToRgba(cardColor, 0.1) : "#1e1e1e",
+        borderColor: cardColor ? hexToRgba(cardColor, 0.25) : "#2e2e2e",
+      }}
+    >
       <div className="flex items-start gap-2">
         <div className="shrink-0 pt-0.5">
           <FileText size={13} className="text-[#b0b0b0]" />

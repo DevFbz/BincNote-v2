@@ -123,18 +123,34 @@ class AIActionView(APIView):
         "reformular": "Reescreva o texto a seguir de forma mais clara, em português do Brasil.",
         "continuar": "Continue o texto a seguir mantendo o estilo e o idioma português do Brasil.",
         "corrigir": "Corrija gramática, ortografia e pontuação do texto em português do Brasil.",
+        "melhorar": "Melhore a escrita do texto a seguir, tornando-o mais profissional e claro, em português do Brasil.",
+        "explicar": "Explique o texto a seguir de forma didática e simples, em português do Brasil.",
+        "reformatar": "Reformate o texto a seguir usando markdown (cabeçalhos, listas, negrito, itálico) para melhor estrutura e legibilidade, em português do Brasil. Mantenha todo o conteúdo original.",
+        "criar_prd": "Crie um PRD (Product Requirements Document) profissional completo em português do Brasil. Use markdown com os seguintes tópicos obrigatórios:\n\n# PRD - [Nome do Projeto]\n\n## 1. Objetivo\n## 2. Escopo\n## 3. Requisitos Funcionais\n## 4. Requisitos Não Funcionais\n## 5. Sprint Backlog\n\nDentro de cada sprint, use listas de tarefas com checkboxes (- [ ] tarefa). Crie ao menos 3 sprints com 4-6 tarefas cada. Use subtópicos numerados dentro dos requisitos. O PRD deve ser detalhado e profissional, como se fosse para um produto real.\n\nGere APENAS o conteúdo do PRD, sem introdução ou comentários extras.",
     }
 
     def post(self, request):
         acao = request.data.get("acao")
         trecho = request.data.get("trecho", "")
-        if acao not in self.ACOES or not trecho.strip():
+        if acao not in self.ACOES:
             return Response(
-                {"detail": "Ação inválida ou trecho vazio."},
+                {"detail": "Ação inválida."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if acao != "criar_prd" and not trecho.strip():
+            return Response(
+                {"detail": "Trecho vazio não é permitido para esta ação."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         mensagens = [
             {"role": "system", "content": "Você é um escritor em português do Brasil."},
-            {"role": "user", "content": f"{self.ACOES[acao]}\n\n{trecho}"},
         ]
+        if trecho.strip():
+            mensagens.append(
+                {"role": "user", "content": f"{self.ACOES[acao]}\n\n{trecho}"}
+            )
+        else:
+            mensagens.append(
+                {"role": "user", "content": self.ACOES[acao]}
+            )
         return Response({"resultado": _chamar_modelo(mensagens)})
