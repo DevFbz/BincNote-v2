@@ -1235,6 +1235,18 @@ body {
   min-height: 32px;
   transition: opacity 120ms;
 }
+
+/* Extend hover hit area to the left so controls stay visible
+   when mouse is beside the text (not on top of it) */
+.blk-wrapper::before {
+  content: "";
+  position: absolute;
+  left: -60px;
+  top: -4px;
+  width: 60px;
+  height: calc(100% + 8px);
+  pointer-events: auto;
+}
 .blk-wrapper.blk-dragging {
   z-index: 999;
 }

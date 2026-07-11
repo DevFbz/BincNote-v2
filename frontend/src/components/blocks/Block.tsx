@@ -67,6 +67,7 @@ export default React.memo(function Block({ block, onChange, onDelete, onAddAbove
   const [showTypeMenu, setShowTypeMenu] = useState(false);
   const inputRef = useRef<HTMLDivElement>(null);
   const isTypingRef = useRef(false);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Focus the input when the component mounts (for new blocks)
   useEffect(() => {
@@ -82,9 +83,9 @@ export default React.memo(function Block({ block, onChange, onDelete, onAddAbove
     if (!el) return;
     // Skip sync if user is actively typing — DOM already has latest
     if (isTypingRef.current) return;
-    const current = el.innerText ?? "";
+    const current = el.textContent ?? "";
     if (current !== block.content) {
-      el.innerText = block.content;
+      el.textContent = block.content;
     }
   }, [block.content, block.type]);
 
@@ -202,12 +203,14 @@ export default React.memo(function Block({ block, onChange, onDelete, onAddAbove
             }
             onInput={(e) => {
               isTypingRef.current = true;
-              const text = (e.target as HTMLDivElement).innerText;
+              clearTimeout(typingTimerRef.current);
+              typingTimerRef.current = setTimeout(() => {
+                isTypingRef.current = false;
+              }, 400);
+              const text = (e.target as HTMLDivElement).textContent ?? "";
               onChange(block.id, { content: text });
-              // Clear flag after a frame so the sync effect won't fire
-              requestAnimationFrame(() => { isTypingRef.current = false; });
             }}
-            onBlur={() => { isTypingRef.current = false; }}
+            onBlur={() => { isTypingRef.current = false; clearTimeout(typingTimerRef.current); }}
             onKeyDown={handleKeyDown}
           />
         )}
