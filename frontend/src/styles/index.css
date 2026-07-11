@@ -1242,22 +1242,25 @@ body {
 /* ── Hover controls ── */
 .blk-controls {
   position: absolute;
-  left: -52px;
+  left: -44px;
   top: 2px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 0px;
   opacity: 0;
-  transition: opacity 120ms ease;
+  /* Fade out with delay so mouse can reach the controls */
+  transition: opacity 80ms ease 200ms;
   pointer-events: none;
   z-index: 10;
 }
-.blk-controls-visible {
+
+.blk-wrapper:hover .blk-controls {
   opacity: 1;
+  /* Fade in instantly */
+  transition: opacity 80ms ease 0ms;
   pointer-events: auto;
 }
-
 .blk-control-group {
   display: flex;
   flex-direction: column;

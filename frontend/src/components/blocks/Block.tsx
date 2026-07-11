@@ -1,6 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useState, useRef, useCallback, useEffect, KeyboardEvent } from "react";
+import React, { useState, useRef, useCallback, useEffect, KeyboardEvent } from "react";
 import { BlockData, BlockType, createBlock, generateBlockId } from "./types";
 import {
   GripVertical,
@@ -48,7 +48,7 @@ interface BlockProps {
   onChangeType: (id: string, type: BlockType) => void;
 }
 
-export default function Block({ block, onChange, onDelete, onAddAbove, onAddBelow, onChangeType }: BlockProps) {
+export default React.memo(function Block({ block, onChange, onDelete, onAddAbove, onAddBelow, onChangeType }: BlockProps) {
   const {
     attributes,
     listeners,
@@ -64,9 +64,9 @@ export default function Block({ block, onChange, onDelete, onAddAbove, onAddBelo
     opacity: isDragging ? 0.3 : 1,
   };
 
-  const [hovering, setHovering] = useState(false);
   const [showTypeMenu, setShowTypeMenu] = useState(false);
   const inputRef = useRef<HTMLDivElement>(null);
+  const isTypingRef = useRef(false);
 
   // Focus the input when the component mounts (for new blocks)
   useEffect(() => {
@@ -75,38 +75,51 @@ export default function Block({ block, onChange, onDelete, onAddAbove, onAddBelo
     }
   }, []);
 
+  // Sync content from external changes (AI, type change, initial load)
+  // without fighting user's typing cursor
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    // Skip sync if user is actively typing — DOM already has latest
+    if (isTypingRef.current) return;
+    const current = el.innerText ?? "";
+    if (current !== block.content) {
+      el.innerText = block.content;
+    }
+  }, [block.content, block.type]);
+
   /* ── Handle keyboard ── */
   const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLDivElement>) => {
-      // Esc: close type menu
-      if (e.key === "Escape") {
-        setShowTypeMenu(false);
-        return;
-      }
+      (e: KeyboardEvent<HTMLDivElement>) => {
+        // Esc: close type menu
+        if (e.key === "Escape") {
+          setShowTypeMenu(false);
+          return;
+        }
 
-      // Enter: create new block below
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        onAddBelow(block.id);
-        return;
-      }
+        // Enter: create new block below
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          onAddBelow(block.id);
+          return;
+        }
 
-      // Backspace on empty: delete this block
-      if (e.key === "Backspace" && !block.content) {
-        e.preventDefault();
-        onDelete(block.id);
-        return;
-      }
+        // Backspace on empty: delete this block
+        if (e.key === "Backspace" && !block.content) {
+          e.preventDefault();
+          onDelete(block.id);
+          return;
+        }
 
-      // "/" : open type menu
-      if (e.key === "/" && !block.content) {
-        e.preventDefault();
-        setShowTypeMenu(true);
-        return;
-      }
-    },
-    [block.id, block.content, onAddBelow, onDelete]
-  );
+        // "/" : open type menu (only when empty so user can type / in text)
+        if (e.key === "/" && !block.content) {
+          e.preventDefault();
+          setShowTypeMenu(true);
+          return;
+        }
+      },
+      [block.id, block.content, onAddBelow, onDelete]
+    );
 
   /* ── Type select ── */
   const selectType = useCallback(
@@ -144,11 +157,9 @@ export default function Block({ block, onChange, onDelete, onAddAbove, onAddBelo
       ref={setNodeRef}
       style={style}
       className={`blk-wrapper ${isDragging ? "blk-dragging" : ""}`}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => { setHovering(false); setShowTypeMenu(false); }}
     >
       {/* Hover controls */}
-      <div className={`blk-controls ${hovering ? "blk-controls-visible" : ""}`}>
+      <div className="blk-controls">
         {/* Add button */}
         <div className="blk-control-group">
           <button
@@ -190,11 +201,14 @@ export default function Block({ block, onChange, onDelete, onAddAbove, onAddBelo
               : "Digite algo..."
             }
             onInput={(e) => {
+              isTypingRef.current = true;
               const text = (e.target as HTMLDivElement).innerText;
               onChange(block.id, { content: text });
+              // Clear flag after a frame so the sync effect won't fire
+              requestAnimationFrame(() => { isTypingRef.current = false; });
             }}
+            onBlur={() => { isTypingRef.current = false; }}
             onKeyDown={handleKeyDown}
-            dangerouslySetInnerHTML={{ __html: block.content }}
           />
         )}
       </div>
@@ -218,4 +232,4 @@ export default function Block({ block, onChange, onDelete, onAddAbove, onAddBelo
       )}
     </div>
   );
-}
+});
