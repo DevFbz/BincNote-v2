@@ -12,6 +12,7 @@ import { docToBlocks, blocksToDoc, type BlockData } from "../components/blocks/t
 import BlockEditor, { type BlockEditorHandle } from "../components/blocks/BlockEditor";
 import { BoardView } from "../components/BoardView";
 import { AIChatPanel } from "../components/AIChatPanel";
+import { setFavicon, emojiToFavicon } from "../utils/favicon";
 import {
   ALL_TEMPLATES,
   TEMPLATES,
@@ -166,6 +167,7 @@ export function PaginaView({ id }: { id: number }) {
     if (pagina) {
       setTitulo(pagina.titulo);
       setIcone(pagina.icone);
+      setFavicon(emojiToFavicon(pagina.icone || "📄"));
       setCapa(pagina.capa);
       if (!pagina.conteudo || pagina.conteudo === null) {
         setMostrarTemplates(true);
@@ -177,6 +179,17 @@ export function PaginaView({ id }: { id: number }) {
       }
     }
   }, [pagina]);
+
+  // Reset favicon when leaving the page
+  useEffect(() => {
+    return () => {
+      // Restore default favicon
+      setFavicon("");
+      // Remove the link element entirely so browser uses default
+      const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+      if (link) link.remove();
+    };
+  }, []);
 
   const salvarConteudo = useMutation({
     mutationFn: (conteudo: object) =>
@@ -433,7 +446,7 @@ export function PaginaView({ id }: { id: number }) {
                     {EMOJIS_RAPIDOS.map((e) => (
                       <button
                         key={e}
-                        onClick={() => { setIcone(e); salvar.mutate({ icone: e }); setAbrirEmoji(false); }}
+                        onClick={() => { setIcone(e); setFavicon(emojiToFavicon(e)); salvar.mutate({ icone: e }); setAbrirEmoji(false); }}
                         className="aspect-square text-lg hover:bg-surface-3 hover:bg-[#3e3e3e] rounded-lg transition-all duration-150 hover:scale-110 active:scale-95"
                       >
                         {e}
@@ -441,7 +454,7 @@ export function PaginaView({ id }: { id: number }) {
                     ))}
                   </div>
                   <button
-                    onClick={() => { setIcone(""); salvar.mutate({ icone: "" }); setAbrirEmoji(false); }}
+                    onClick={() => { setIcone(""); setFavicon(emojiToFavicon("📄")); salvar.mutate({ icone: "" }); setAbrirEmoji(false); }}
                     className="mt-3 w-full text-xs text-txt-muted hover:text-danger py-1.5 px-3 rounded-lg hover:bg-danger/10 transition-colors border border-surface-3 border-[#3e3e3e] hover:border-danger/30"
                   >
                     Remover ícone
