@@ -1389,12 +1389,20 @@ body {
 }
 
 /* ── Section 1: Block type bar ── */
+
+/* Hover container: wraps the block row + transform dropdown so mousenter/leave
+   covers both without gaps. */
+.cdp-bm-transform-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
 .cdp-bm-block-row {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 3px 10px 3px 12px;
-  position: relative;
 }
 .cdp-bm-block-icon {
   display: flex;
@@ -1430,9 +1438,8 @@ body {
 /* ── Transform submenu dropdown (Notion style) ── */
 .cdp-bm-transform-dropdown {
   position: absolute;
-  left: 100%;
+  left: calc(100% + 6px);
   top: -4px;
-  margin-left: 6px;
   background: #2a2a2a;
   border: 1px solid #3a3a3a;
   border-radius: 10px;

@@ -305,6 +305,41 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
     const [customPrompt, setCustomPrompt] = useState("");
     const [showTransformSubmenu, setShowTransformSubmenu] = useState(false);
 
+    // Hover-open for block-type indicator
+    const isTouchDevice =
+      typeof window !== "undefined" &&
+      ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+    const transformHoverTimerRef = useRef<number | null>(null);
+    const transformWrapRef = useRef<HTMLDivElement>(null);
+
+    const clearTransformTimer = useCallback(() => {
+      if (transformHoverTimerRef.current !== null) {
+        clearTimeout(transformHoverTimerRef.current);
+        transformHoverTimerRef.current = null;
+      }
+    }, []);
+
+    const handleBlockRowEnter = useCallback(() => {
+      if (isTouchDevice) return;
+      clearTransformTimer();
+      transformHoverTimerRef.current = window.setTimeout(() => {
+        setShowTransformSubmenu(true);
+      }, 200);
+    }, [isTouchDevice, clearTransformTimer]);
+
+    const handleBlockRowLeave = useCallback(() => {
+      if (isTouchDevice) return;
+      clearTransformTimer();
+      transformHoverTimerRef.current = window.setTimeout(() => {
+        setShowTransformSubmenu(false);
+      }, 150);
+    }, [isTouchDevice, clearTransformTimer]);
+
+    const handleArrowClick = useCallback(() => {
+      clearTransformTimer();
+      setShowTransformSubmenu((prev) => !prev);
+    }, [clearTransformTimer]);
+
     const selectedTextRef = useRef("");
     selectedTextRef.current = selectedText;
 
@@ -408,9 +443,10 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
       (type: string, attrs?: any) => {
         if (!editor) return;
         editor.chain().focus().setNode(type, attrs).run();
+        clearTransformTimer();
         setShowTransformSubmenu(false);
       },
-      [editor]
+      [editor, clearTransformTimer]
     );
 
     /* ── AI Actions ── */
@@ -477,19 +513,29 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
             className="cdp-bubble-menu"
           >
             {/* ── Section 1: Block type bar ── */}
-            <div className="cdp-bm-block-row">
-              <span className="cdp-bm-block-icon">{blockType.icon}</span>
-              <span className="cdp-bm-block-name">{blockType.name}</span>
-              <button
-                className="cdp-bm-block-arrow"
-                onClick={() => setShowTransformSubmenu(!showTransformSubmenu)}
-              >
-                <ChevronRight size={13} />
-              </button>
+            <div
+              ref={transformWrapRef}
+              className="cdp-bm-transform-wrap"
+              onMouseEnter={handleBlockRowEnter}
+              onMouseLeave={handleBlockRowLeave}
+            >
+              <div className="cdp-bm-block-row">
+                <span className="cdp-bm-block-icon">{blockType.icon}</span>
+                <span className="cdp-bm-block-name">{blockType.name}</span>
+                <button
+                  className="cdp-bm-block-arrow"
+                  onClick={handleArrowClick}
+                >
+                  <ChevronRight size={13} />
+                </button>
+              </div>
               {showTransformSubmenu && (
                 <TransformDropdown
                   onPick={transformTo}
-                  onClose={() => setShowTransformSubmenu(false)}
+                  onClose={() => {
+                    clearTransformTimer();
+                    setShowTransformSubmenu(false);
+                  }}
                 />
               )}
             </div>
