@@ -8,7 +8,6 @@ import {
 import { api, type Pagina } from "../api/cliente";
 import { usePagina } from "../api/paginas";
 import { buscarDatabasePorPagina, criarTemplateKanban } from "../api/grids";
-import { docToBlocks, blocksToDoc, type BlockData } from "../components/blocks/types";
 import BlockEditor, { type BlockEditorHandle } from "../components/blocks/BlockEditor";
 import { BoardView } from "../components/BoardView";
 import { AIChatPanel } from "../components/AIChatPanel";
@@ -564,9 +563,9 @@ export function PaginaView({ id }: { id: number }) {
             <div className="min-h-[300px] px-8 pb-6">
               <BlockEditor
                 ref={blockEditorRef}
-                initialContent={pagina.conteudo ? docToBlocks(pagina.conteudo) : undefined}
-                onChange={(blocks) => {
-                  salvarConteudo.mutate(blocksToDoc(blocks));
+                initialContent={pagina.conteudo}
+                onChange={(docJson) => {
+                  salvarConteudo.mutate(docJson);
                 }}
               />
             </div>
