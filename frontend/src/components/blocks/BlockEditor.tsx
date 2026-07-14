@@ -25,8 +25,6 @@ import {
   Settings,
   PaintBucket,
   Eraser,
-  MoreHorizontal,
-  Sigma,
   Send,
   ArrowUp,
   ChevronRight,
@@ -116,6 +114,145 @@ function AiConfirm({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════
+   Notion-style block type transform submenu
+   ════════════════════════════════════════════ */
+
+interface TransformOption {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  command: () => void;
+  preview?: { tag: string; sample: string };
+}
+
+function TransformDropdown({
+  onPick,
+  onClose,
+}: {
+  onPick: (type: string, attrs?: any) => void;
+  onClose: () => void;
+}) {
+  const [hoveredSub, setHoveredSub] = useState<string | null>(null);
+
+  const options: (TransformOption & { sub?: Omit<TransformOption, "sub">[] })[] = [
+    {
+      id: "paragraph",
+      label: "Texto normal",
+      icon: <Text size={14} />,
+      command: () => onPick("paragraph"),
+      preview: { tag: "P", sample: "Texto normal" },
+    },
+    {
+      id: "heading",
+      label: "Cabeçalhos",
+      icon: <Heading1 size={14} />,
+      command: () => {},
+      sub: [
+        {
+          id: "h1",
+          label: "Título 1",
+          icon: <Heading1 size={14} />,
+          command: () => onPick("heading", { level: 1 }),
+          preview: { tag: "H1", sample: "Título 1" },
+        },
+        {
+          id: "h2",
+          label: "Título 2",
+          icon: <Heading2 size={14} />,
+          command: () => onPick("heading", { level: 2 }),
+          preview: { tag: "H2", sample: "Título 2" },
+        },
+        {
+          id: "h3",
+          label: "Título 3",
+          icon: <Heading3 size={14} />,
+          command: () => onPick("heading", { level: 3 }),
+          preview: { tag: "H3", sample: "Título 3" },
+        },
+      ],
+    },
+    {
+      id: "bulletList",
+      label: "Lista",
+      icon: <List size={14} />,
+      command: () => onPick("bulletList"),
+      preview: { tag: "UL", sample: "• Item de lista" },
+    },
+    {
+      id: "orderedList",
+      label: "Lista numerada",
+      icon: <ListOrdered size={14} />,
+      command: () => onPick("orderedList"),
+      preview: { tag: "OL", sample: "1. Item numerado" },
+    },
+    {
+      id: "taskList",
+      label: "Tarefas",
+      icon: <CheckSquare size={14} />,
+      command: () => onPick("taskList"),
+      preview: { tag: "☐", sample: "Tarefa pendente" },
+    },
+    {
+      id: "codeBlock",
+      label: "Código",
+      icon: <Code size={14} />,
+      command: () => onPick("codeBlock"),
+      preview: { tag: "</>", sample: "const x = 1;" },
+    },
+    {
+      id: "blockquote",
+      label: "Citação",
+      icon: <Text size={14} />,
+      command: () => onPick("blockquote"),
+      preview: { tag: "“", sample: "Citação" },
+    },
+  ];
+
+  return (
+    <div className="cdp-bm-transform-dropdown" onMouseLeave={() => setHoveredSub(null)}>
+      {options.map((opt) => (
+        <div
+          key={opt.id}
+          className="cdp-bm-transform-item"
+          onMouseEnter={() => opt.sub && setHoveredSub(opt.id)}
+          onClick={() => {
+            if (!opt.sub) opt.command();
+          }}
+        >
+          <span className="cdp-bm-transform-item-icon">{opt.icon}</span>
+          <span className="cdp-bm-transform-item-label">{opt.label}</span>
+          {opt.sub && <ChevronRight size={11} className="cdp-bm-transform-item-arrow" />}
+
+          {/* Hover sub-window (Notion-style) */}
+          {opt.sub && hoveredSub === opt.id && (
+            <div className="cdp-bm-transform-sub">
+              {opt.sub.map((sub) => (
+                <div
+                  key={sub.id}
+                  className="cdp-bm-transform-sub-item"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    sub.command();
+                  }}
+                >
+                  <span className="cdp-bm-transform-item-icon">{sub.icon}</span>
+                  <div className="cdp-bm-transform-sub-content">
+                    <span className="cdp-bm-transform-sub-tag">{sub.preview?.tag}</span>
+                    <span className="cdp-bm-transform-sub-sample">
+                      {sub.preview?.sample}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -296,7 +433,6 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
       const prompt = customPrompt.trim();
       if (!trecho || !prompt || !editor) return;
       setAiLoading("custom");
-      // Use the same action endpoint with a custom instruction
       callAiAction("reformular", `${prompt}\n\n${trecho}`).then((result) => {
         setAiLoading(null);
         if (result) {
@@ -336,7 +472,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
             tippyOptions={{
               duration: 150,
               placement: "top",
-              maxWidth: 280,
+              maxWidth: 300,
             }}
             className="cdp-bubble-menu"
           >
@@ -351,26 +487,10 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
                 <ChevronRight size={13} />
               </button>
               {showTransformSubmenu && (
-                <div className="cdp-bm-transform-dropdown">
-                  <button onClick={() => transformTo("paragraph")}>
-                    <Text size={13} /> Texto normal
-                  </button>
-                  <button onClick={() => transformTo("heading", { level: 1 })}>
-                    <Heading1 size={13} /> Título 1
-                  </button>
-                  <button onClick={() => transformTo("heading", { level: 2 })}>
-                    <Heading2 size={13} /> Título 2
-                  </button>
-                  <button onClick={() => transformTo("heading", { level: 3 })}>
-                    <Heading3 size={13} /> Título 3
-                  </button>
-                  <button onClick={() => transformTo("bulletList")}>
-                    <List size={13} /> Lista
-                  </button>
-                  <button onClick={() => transformTo("orderedList")}>
-                    <ListOrdered size={13} /> Lista numerada
-                  </button>
-                </div>
+                <TransformDropdown
+                  onPick={transformTo}
+                  onClose={() => setShowTransformSubmenu(false)}
+                />
               )}
             </div>
 
