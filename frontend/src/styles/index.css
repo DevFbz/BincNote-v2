@@ -1367,20 +1367,111 @@ body {
 
 .cdp-bubble-menu {
   display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 5px 8px;
+  flex-direction: column;
+  width: 240px;
+  padding: 8px 0;
   background: #252525;
   border: 1px solid #383838;
-  border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.55);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  color: #e0e0e0;
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+/* ── Divider ── */
+.cdp-bm-divider {
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+  margin: 4px 0;
+}
+
+/* ── Section 1: Block type bar ── */
+.cdp-bm-block-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 12px;
+  position: relative;
+}
+.cdp-bm-block-icon {
+  display: flex;
+  align-items: center;
+  color: #aaa;
+}
+.cdp-bm-block-name {
+  flex: 1;
+  font-size: 12px;
+  color: #ccc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cdp-bm-block-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #777;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.cdp-bm-block-arrow:hover {
+  background: rgba(255,255,255,0.08);
+  color: #ccc;
+}
+
+/* ── Transform submenu dropdown ── */
+.cdp-bm-transform-dropdown {
+  position: absolute;
+  left: 100%;
+  top: -4px;
+  margin-left: 4px;
+  background: #2a2a2a;
+  border: 1px solid #383838;
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  z-index: 100;
+  min-width: 160px;
+}
+.cdp-bm-transform-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #d4d4d4;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.cdp-bm-transform-dropdown button:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+/* ── Section 2: Formatting grid ── */
+.cdp-bm-fmt-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 2px 8px;
 }
 .cdp-bm-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
+  width: 100%;
   height: 32px;
   border: none;
   border-radius: 6px;
@@ -1397,10 +1488,211 @@ body {
   background: rgba(82, 130, 255, 0.2);
   color: #82aaff;
 }
-.cdp-bm-sep {
-  width: 1px;
-  height: 20px;
-  background: #383838;
-  margin: 0 3px;
+
+/* ── Section 3: Comment line ── */
+.cdp-bm-comment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 10px;
+}
+.cdp-bm-comment-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #b0b0b0;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.cdp-bm-comment-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: #e0e0e0;
+}
+
+/* ── Section 4: Habilidades ── */
+.cdp-bm-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 12px 2px;
+  color: #888;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.cdp-bm-ai-list {
+  padding: 0 4px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+.cdp-bm-ai-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #d4d4d4;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.cdp-bm-ai-item:hover:not(.disabled) {
+  background: rgba(255,255,255,0.06);
+}
+.cdp-bm-ai-item.disabled {
+  color: #555;
+  cursor: not-allowed;
+}
+.cdp-bm-ai-item.loading {
+  color: #a8dcff;
+  cursor: wait;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.cdp-bm-ai-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #555;
+  border-top-color: #82aaff;
+  border-radius: 50%;
+  animation: cdp-spin 0.6s linear infinite;
+  margin-left: auto;
   flex-shrink: 0;
+}
+@keyframes cdp-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Section 5: Footer "Edite com a IA" ── */
+.cdp-bm-footer {
+  display: flex;
+  align-items: center;
+  padding: 4px 10px;
+  gap: 6px;
+}
+.cdp-bm-footer-input-wrap {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 6px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 3px 6px;
+}
+.cdp-bm-footer-sparkle {
+  color: #666;
+  flex-shrink: 0;
+}
+.cdp-bm-footer-input {
+  background: transparent;
+  border: none;
+  color: #d4d4d4;
+  font-size: 12px;
+  outline: none;
+  width: 100%;
+}
+.cdp-bm-footer-input::placeholder {
+  color: #555;
+}
+.cdp-bm-footer-send {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.1s;
+  flex-shrink: 0;
+}
+.cdp-bm-footer-send:hover:not(:disabled) {
+  background: rgba(255,255,255,0.08);
+  color: #82aaff;
+}
+.cdp-bm-footer-send:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.cdp-bm-footer-shortcut {
+  font-size: 10px;
+  color: #555;
+  flex-shrink: 0;
+  padding: 2px 4px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 4px;
+  background: rgba(255,255,255,0.03);
+}
+
+/* ── AI Confirm overlay ── */
+.cdp-ai-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cdp-ai-confirm-box {
+  max-width: 420px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: #2a2a2a;
+  border: 1px solid #383838;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+}
+.cdp-ai-confirm-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: #d4d4d4;
+  white-space: pre-wrap;
+  margin-bottom: 12px;
+}
+.cdp-ai-confirm-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.cdp-ai-confirm-yes {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #1a5fb4;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.cdp-ai-confirm-yes:hover {
+  background: #1c71d8;
+}
+.cdp-ai-confirm-no {
+  padding: 6px 16px;
+  border: 1px solid #383838;
+  border-radius: 8px;
+  background: transparent;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+.cdp-ai-confirm-no:hover {
+  background: rgba(255,255,255,0.06);
+  color: #d4d4d4;
 }
