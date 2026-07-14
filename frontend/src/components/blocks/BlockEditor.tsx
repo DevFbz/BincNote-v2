@@ -53,8 +53,13 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
       const json = JSON.stringify(initialContent ?? null);
       if (json !== prevContentJson.current) {
         prevContentJson.current = json;
-        if (initialContent && initialContent.length > 0) {
-          setBlocks(initialContent);
+        if (initialContent) {
+          try {
+            const parsed = docToBlocks(initialContent);
+            if (parsed.length > 0) setBlocks(parsed);
+          } catch {
+            // fall through — keep current blocks
+          }
         }
       }
     }, [initialContent]);

@@ -157,3 +157,11 @@ export interface SLAResult {
 export async function gerarRelatorioSLA(paginaId: number): Promise<SLAResult> {
   return api.post<SLAResult>("/ai/relatorio-sla/", { pagina_id: paginaId });
 }
+
+/** Cria campos no database se ainda não existirem (por nome). Idempotente. */
+export async function ensureFields(
+  databaseId: number,
+  fields: Array<{ nome: string; kind: string; config?: { [key: string]: any } }>
+) {
+  return api.post(`/grids/databases/${databaseId}/ensure-fields/`, { fields });
+}

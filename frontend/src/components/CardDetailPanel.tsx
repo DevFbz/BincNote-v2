@@ -19,7 +19,7 @@ import { List as ListIcon } from "lucide-react";
 
 import { api } from "../api/cliente";
 import BlockEditor from "./blocks/BlockEditor";
-import { atualizarCelula, getCell, getValorTexto } from "../api/grids";
+import { atualizarCelula, getCell, getValorTexto, ensureFields } from "../api/grids";
 import type { Record as GridRecord, Field } from "../api/grids";
 
 interface Props {
@@ -503,6 +503,16 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
   const [visible, setVisible] = useState(false);
   const [comments, setComments] = useState<Array<{ text: string; createdAt: string }>>([]);
   const [commentText, setCommentText] = useState("");
+
+  // Auto-create "Notas" text field if it doesn't exist yet
+  const ensureRanRef = useRef(false);
+  useEffect(() => {
+    if (ensureRanRef.current || notesField || !record || !databaseId) return;
+    ensureRanRef.current = true;
+    ensureFields(databaseId, [{ nome: "Notas", kind: "text" }])
+      .then(() => onRefresh?.())
+      .catch(() => {});
+  }, [notesField, record, databaseId, onRefresh]);
   // Resizable panel width (persisted in localStorage)
   const [panelWidth, setPanelWidth] = useState(() => {
     const saved = localStorage.getItem("cdp-panel-width");
@@ -639,16 +649,18 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
   const notaSalva = notesField && record ? getCell(record, notesField.id)?.valor : null;
   const conteudoInicial = notaSalva?.json ?? (notaSalva?.text ? { type: "doc", content: [{ type: "paragraph" }] } : null);
 
-  // Debounced save via atualizarCelula
+  // Debounced save via atualizarCelula + refresh to update detailRecord
   const saveDebounce = useRef<number | null>(null);
   const handleNotesChange = useCallback((docJson: any) => {
     if (saveDebounce.current) window.clearTimeout(saveDebounce.current);
     saveDebounce.current = window.setTimeout(() => {
       if (notesField && record) {
-        atualizarCelula(record.id, notesField.id, { json: docJson }).catch(() => {});
+        atualizarCelula(record.id, notesField.id, { json: docJson })
+          .then(() => onRefresh?.())
+          .catch(() => {});
       }
     }, 800);
-  }, [notesField, record]);
+  }, [notesField, record, onRefresh]);
 
   // Dispatch selected text to chatbot (for context tag)
   const handleBlockSelect = useCallback((text: string) => {
