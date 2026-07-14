@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -84,6 +84,23 @@ export function PaginaView({ id }: { id: number }) {
   const [selectedText, setSelectedText] = useState<string>("");
   const [showParticular, setShowParticular] = useState(false);
   const [showPageMenu, setShowPageMenu] = useState(false);
+  const [chatContext, setChatContext] = useState<{ type: 'page'; id: number; title: string } | { type: 'card'; id: number; title: string; pageTitle: string } | null>(null);
+
+  // Card open/close → update chat context (tag ambiente)
+  const handleCardChange = useCallback((card: { id: number; title: string } | null) => {
+    if (card) {
+      setChatContext({ type: 'card', id: card.id, title: card.title, pageTitle: pagina?.titulo ?? "" });
+    } else {
+      setChatContext(pagina ? { type: 'page', id: pagina.id, title: pagina.titulo } : null);
+    }
+  }, [pagina]);
+
+  // Initialize chat context when page loads
+  useEffect(() => {
+    if (pagina && !chatContext) {
+      setChatContext({ type: 'page', id: pagina.id, title: pagina.titulo });
+    }
+  }, [pagina, chatContext]);
 
   // Listen for text selection from CardDetailPanel
   useEffect(() => {
@@ -541,7 +558,7 @@ export function PaginaView({ id }: { id: number }) {
           {/* Main editor */}
           {pagina.kind === "database" ? (
             <div className="px-8 pb-6 flex-1 min-h-[400px]">
-              <BoardView databaseId={dbId ?? 0} onOpenAI={() => setAiAberto(true)} />
+              <BoardView databaseId={dbId ?? 0} onOpenAI={() => setAiAberto(true)} onCardChange={handleCardChange} />
             </div>
           ) : (
             <div className="min-h-[300px] px-8 pb-6">
@@ -572,6 +589,22 @@ export function PaginaView({ id }: { id: number }) {
           paginaId={id}
           paginaTitulo={pagina?.titulo ?? ""}
           selectedText={selectedText}
+          activeCardId={chatContext?.type === 'card' ? chatContext.id : null}
+          activeCardTitle={chatContext?.type === 'card' ? chatContext.title : undefined}
+          contextTags={[
+            chatContext?.type === 'card'
+              ? { id: 'card-' + chatContext.id, label: chatContext.title, icon: '📇', type: 'database' as const, fullText: `Card: ${chatContext.title} (${chatContext.pageTitle})` }
+              : { id: 'page-' + (pagina?.id ?? id), label: pagina?.titulo ?? '', icon: pagina?.icone || '📄', type: 'pagina' as const },
+          ]}
+          suggestions={
+            pagina?.kind === 'database'
+              ? [
+                  { icon: '📊', label: 'Gerar Relatório SLA', action: () => {} },
+                  { icon: '🔍', label: 'Analisar dados para obter insights', action: () => {} },
+                  { icon: '📋', label: 'Resumir este quadro', action: () => {} },
+                ]
+              : undefined
+          }
           onApplyContent={(content) => {
             // Also dispatch event for CardDetailPanel (notes editor)
             window.dispatchEvent(new CustomEvent('apply-notes-content', { detail: content }));

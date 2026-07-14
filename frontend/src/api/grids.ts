@@ -117,3 +117,43 @@ export async function buscarDatabasePorPagina(paginaId: number): Promise<number 
     return null;
   }
 }
+
+// ── SLA Report ─────────────────────────────────────────────────────
+
+export interface SLAResult {
+  metricas: {
+    total_cards: number;
+    validos: number;
+    em_andamento: number;
+    inconsistentes: number;
+    media_espera_dias: number;
+    media_atendimento_dias: number;
+    media_total_dias: number;
+    max_espera_dias: number;
+    max_total_dias: number;
+  };
+  ranking: Array<{
+    id: number;
+    titulo: string;
+    status_kanban: string;
+    status_sla: string;
+    data_abertura: string;
+    data_inicio: string;
+    data_termino: string;
+    espera_dias: number | null;
+    atendimento_dias: number | null;
+    total_dias: number | null;
+  }>;
+  cards: any[];
+  graficos: {
+    distribuicao_status: { [key: string]: number };
+    status_sla_counts: { [key: string]: number };
+  };
+  resumo_ia: string;
+  fields_created: { id: number; nome: string; kind: string }[];
+  campos_data: string[];
+}
+
+export async function gerarRelatorioSLA(paginaId: number): Promise<SLAResult> {
+  return api.post<SLAResult>("/ai/relatorio-sla/", { pagina_id: paginaId });
+}

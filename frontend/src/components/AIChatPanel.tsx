@@ -7,6 +7,7 @@ import {
   FileText, Paperclip
 } from "lucide-react";
 import { api } from "../api/cliente";
+import { gerarRelatorioSLA, type SLAResult } from "../api/grids";
 
 // ── Types ─────────────────────────────────────────────────────────────
 
@@ -57,6 +58,17 @@ const CONTEXT_ICONS: Record<ContextTag["type"], string> = {
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
   return text.slice(0, max) + "…";
+}
+
+// ── MetricBox ────────────────────────────────────────────────────────
+
+function MetricBox({ label, value, color }: { label: string; value: string | number; color?: string }) {
+  return (
+    <div className="flex flex-col rounded-lg p-2" style={{ background: "rgba(255,255,255,0.04)" }}>
+      <span className="text-xs" style={{ color: "#8a8a8a" }}>{label}</span>
+      <span className="text-sm font-bold font-mono" style={{ color: color ?? "#d4d4d4" }}>{value}</span>
+    </div>
+  );
 }
 
 // ── ContextTagPill ────────────────────────────────────────────────────
@@ -183,6 +195,9 @@ export function AIChatPanel({
   const [showModelDropdown, setShowModelDropdown] = useState(false);
   const [showChatDropdown, setShowChatDropdown] = useState(false);
   const [localTags, setLocalTags] = useState<ContextTag[]>([]);
+  const [slaReport, setSlaReport] = useState<SLAResult | null>(null);
+  const [slaLoading, setSlaLoading] = useState(false);
+  const [slaError, setSlaError] = useState<string | null>(null);
 
   const activeSuggestions = suggestions ?? DEFAULT_SUGGESTIONS;
 
@@ -253,6 +268,7 @@ export function AIChatPanel({
       return api.post<Message>(`/ai/conversas/${conversaId}/chat/`, {
         conteudo: content,
         pagina_id: paginaId,
+        card_id: activeCardId ?? undefined,
       });
     },
     onSuccess: (data) => {
@@ -304,10 +320,27 @@ export function AIChatPanel({
 
   // Suggest using suggestion — fill input
   const handleSuggestionClick = useCallback((suggestion: SuggestionItem) => {
+    // Special action: SLA report
+    if (suggestion.label === "Gerar Relatório SLA" && paginaId) {
+      setSlaLoading(true);
+      setSlaError(null);
+      setSlaReport(null);
+      gerarRelatorioSLA(paginaId)
+        .then((result) => {
+          setSlaReport(result);
+          setSlaLoading(false);
+          // Insert a system message indicating SLA was generated
+          setInputValue("");
+        })
+        .catch((err) => {
+          setSlaError(err instanceof Error ? err.message : "Erro ao gerar relatório SLA");
+          setSlaLoading(false);
+        });
+      return;
+    }
     setInputValue(suggestion.label);
-    inputRef.current?.focus();
-    suggestion.action();
-  }, []);
+    suggestion.action?.();
+  }, [paginaId]);
 
   const messages = activeConversation?.messages ?? [];
 
@@ -664,7 +697,117 @@ export function AIChatPanel({
               <div ref={messagesEndRef} />
             </div>
           )}
-        </div>
+
+        {/* ════════════ SLA REPORT ════════════ */}
+        {slaLoading && (
+          <div className="shrink-0 px-4 py-4 text-center text-sm" style={{ color: "#8a8a8a" }}>
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "#a8dcff", animationDelay: "0ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "#a8dcff", animationDelay: "150ms" }} />
+              <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: "#a8dcff", animationDelay: "300ms" }} />
+            </div>
+            Gerando relatório SLA…
+          </div>
+        )}
+
+        {slaError && (
+          <div className="shrink-0 px-4 py-3 mx-4 mb-2 rounded-lg text-sm" style={{ background: "#2a1a1a", border: "1px solid #4a2020", color: "#ff8a8a" }}>
+            ❌ {slaError}
+          </div>
+        )}
+
+        {slaReport && (
+          <div className="shrink-0 px-4 py-3 mx-4 mb-2 rounded-xl text-xs space-y-3 overflow-y-auto max-h-[50vh]" style={{ background: "#1a1a2e", border: "1px solid #2a2a4e", color: "#d4d4d4" }}>
+            {/* Header */}
+            <div className="flex items-center gap-2 text-sm font-bold" style={{ color: "#a8dcff" }}>
+              <span>📊</span>
+              <span>Relatório SLA</span>
+            </div>
+
+            {/* Metrics */}
+            <div className="grid grid-cols-2 gap-2">
+              <MetricBox label="Total de cards" value={slaReport.metricas.total_cards} />
+              <MetricBox label="Válidos" value={slaReport.metricas.validos} color="#10b981" />
+              <MetricBox label="Em andamento" value={slaReport.metricas.em_andamento} color="#3b82f6" />
+              <MetricBox label="Inconsistentes" value={slaReport.metricas.inconsistentes} color="#ef4444" />
+            </div>
+
+            {/* Averages */}
+            <div className="grid grid-cols-3 gap-2">
+              <MetricBox label="Média espera" value={`${slaReport.metricas.media_espera_dias}d`} />
+              <MetricBox label="Média atendimento" value={`${slaReport.metricas.media_atendimento_dias}d`} />
+              <MetricBox label="Média total" value={`${slaReport.metricas.media_total_dias}d`} />
+            </div>
+
+            {/* Distribution by Kanban status */}
+            {Object.keys(slaReport.graficos.distribuicao_status).length > 0 && (
+              <div>
+                <div className="text-xs font-semibold mb-1" style={{ color: "#8a8a8a" }}>Distribuição por coluna</div>
+                {Object.entries(slaReport.graficos.distribuicao_status).map(([status, count]: [string, number]) => {
+                  const max = Math.max(...Object.values(slaReport.graficos.distribuicao_status), 1);
+                  const pct = (count / max) * 100;
+                  return (
+                    <div key={status} className="flex items-center gap-2 mb-1">
+                      <span className="w-20 truncate">{status}</span>
+                      <div className="flex-1 h-3 rounded-full" style={{ background: "#2a2a2a" }}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: status === "Concluído" ? "#10b981" : "#3b82f6" }} />
+                      </div>
+                      <span className="w-6 text-right font-mono">{count}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* SLA classification counts */}
+            {slaReport.graficos.status_sla_counts && Object.keys(slaReport.graficos.status_sla_counts).length > 0 && (
+              <div>
+                <div className="text-xs font-semibold mb-1" style={{ color: "#8a8a8a" }}>Classificação SLA</div>
+                {Object.entries(slaReport.graficos.status_sla_counts).map(([key, count]: [string, number]) => (
+                  <div key={key} className="flex items-center gap-2 mb-1">
+                    <span className="w-24 truncate">{key === "concluido" ? "✅ Concluído" : key === "em_andamento" ? "🔄 Em andamento" : "⚠️ Inconsistente"}</span>
+                    <div className="flex-1 h-3 rounded-full" style={{ background: "#2a2a2a" }}>
+                      <div className="h-full rounded-full transition-all" style={{
+                        width: `${(count / Math.max(...Object.values(slaReport.graficos.status_sla_counts))) * 100}%`,
+                        background: key === "concluido" ? "#10b981" : key === "em_andamento" ? "#3b82f6" : "#ef4444",
+                      }} />
+                    </div>
+                    <span className="w-6 text-right font-mono">{count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Ranking */}
+            {slaReport.ranking.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold mb-1" style={{ color: "#8a8a8a" }}>Ranking (maior tempo)</div>
+                {slaReport.ranking.slice(0, 10).map((card, i) => (
+                  <div key={card.id} className="flex items-center gap-2 py-0.5">
+                    <span className="w-4 text-center font-mono" style={{ color: i < 3 ? "#ef4444" : "#8a8a8a" }}>{i + 1}º</span>
+                    <span className="flex-1 truncate">{card.titulo}</span>
+                    <span className="font-mono text-right">{card.total_dias ?? card.espera_dias ?? "—"}d</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* AI Executive Summary */}
+            {slaReport.resumo_ia && !slaReport.resumo_ia.startsWith("[erro") && (
+              <div className="pt-2 border-t" style={{ borderColor: "#2a2a4e" }}>
+                <div className="text-xs font-semibold mb-1" style={{ color: "#8a8a8a" }}>🧠 Resumo da IA</div>
+                <div className="text-xs leading-relaxed whitespace-pre-wrap">{slaReport.resumo_ia}</div>
+              </div>
+            )}
+
+            {/* Fields auto-created */}
+            {slaReport.fields_created.length > 0 && (
+              <div className="text-xs" style={{ color: "#6a6a8a" }}>
+                ℹ️ Campos criados automaticamente: {slaReport.fields_created.map(f => f.nome).join(", ")}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ════════════ CONTEXT TAGS ════════════ */}
         {contextTags.length > 0 && (
@@ -846,6 +989,7 @@ export function AIChatPanel({
               </div>
             </div>
           </div>
+        </div>
         </div>
       </div>
 

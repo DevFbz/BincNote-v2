@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
@@ -408,9 +408,11 @@ function renderCellValue(field: Field, cell?: Cell) {
 export function BoardView({
   databaseId,
   onOpenAI,
+  onCardChange,
 }: {
   databaseId: number;
   onOpenAI: () => void;
+  onCardChange?: (card: { id: number; title: string } | null) => void;
 }) {
   const queryClient = useQueryClient();
   const [viewType, setViewType] = useState<"board" | "table">("board");
@@ -433,13 +435,23 @@ export function BoardView({
     [records, detailRecordId]
   );
 
-  // Column-local card order (for same-column reordering)
-  const [cardOrder, setCardOrder] = useState<Record<string, number[]>>({});
-
   const tituloField = db?.fields?.find((f) => f.kind === "text" || f.kind === "title");
   const statusField = db?.fields?.find((f) => f.kind === "select");
   const tituloFieldId = tituloField?.id ?? 0;
   const statusFieldId = statusField?.id ?? 0;
+
+  // Notify parent about card context change (tag ambiente)
+  useEffect(() => {
+    if (!onCardChange) return;
+    if (detailRecord && tituloFieldId) {
+      onCardChange({ id: detailRecord.id, title: getValorTexto(detailRecord, tituloFieldId) || "Sem título" });
+    } else if (!detailRecordId) {
+      onCardChange(null);
+    }
+  }, [detailRecord, detailRecordId, tituloFieldId, onCardChange]);
+
+  // Column-local card order (for same-column reordering)
+  const [cardOrder, setCardOrder] = useState<Record<string, number[]>>({});
 
   const columnsToRender = useMemo(() => {
     if (!db?.fields) return [];
@@ -520,6 +532,7 @@ export function BoardView({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["records", databaseId] });
       queryClient.invalidateQueries({ queryKey: ["db", databaseId] });
+      setDetailRecordId(null);
     },
   });
 
