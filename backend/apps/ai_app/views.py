@@ -1,9 +1,13 @@
 import json
 from django.conf import settings
+from django.http import HttpResponse
+from django.template.loader import render_to_string
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 import requests
 from datetime import datetime
 
@@ -397,7 +401,10 @@ class SLAReportView(APIView):
             {"role": "user", "content": f"Dados de SLA:\n{data_summary}"},
         ])
 
-        return Response({
+        formato = request.data.get("formato", "json")
+
+        # ── Build response data ─────────────────────────────────────────────
+        dados = {
             "metricas": metrics,
             "ranking": ranking,
             "cards": results,
@@ -408,4 +415,109 @@ class SLAReportView(APIView):
             "resumo_ia": ai_response,
             "fields_created": fields_created,
             "campos_data": ["Data Abertura", "Data Inicio", "Data Término"],
-        })
+            "nome_pagina": page.nome,
+            "gerado_em": datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "taxa_conformidade": round(
+                (metrics["validos"] / metrics["total_cards"] * 100)
+                if metrics["total_cards"] else 0
+            ),
+        }
+
+        # ── JSON (default) ──────────────────────────────────────────────────
+        if formato == "json":
+            return Response(dados)
+
+        # ── HTML ────────────────────────────────────────────────────────────
+        if formato == "html":
+            html = render_to_string("ai_app/relatorio_sla.html", dados)
+            return HttpResponse(html, content_type="text/html; charset=utf-8")
+
+        # ── XLSX ────────────────────────────────────────────────────────────
+        if formato == "xlsx":
+            wb = openpyxl.Workbook()
+
+            # ── Sheet 1: Sumário ────────────────────────────────────────────
+            ws = wb.active
+            ws.title = "Sumário"
+            hdr_font = Font(bold=True, color="FFFFFF", size=11)
+            hdr_fill = PatternFill("solid", fgColor="0B122C")
+            thin_border = Border(
+                left=Side(style="thin"), right=Side(style="thin"),
+                top=Side(style="thin"), bottom=Side(style="thin"),
+            )
+
+            headers = ["Métrica", "Valor"]
+            ws.append(headers)
+            ws.append(["Total de Cards", metrics["total_cards"]])
+            ws.append(["Dentro do SLA", metrics["validos"]])
+            ws.append(["Em Andamento", metrics["em_andamento"]])
+            ws.append(["Inconsistentes", metrics["inconsistentes"]])
+            ws.append(["Taxa de Conformidade (%)", dados["taxa_conformidade"]])
+            ws.append(["Média Espera (dias)", metrics["media_espera_dias"]])
+            ws.append(["Média Atendimento (dias)", metrics["media_atendimento_dias"]])
+            ws.append(["Média Total (dias)", metrics["media_total_dias"]])
+            ws.append(["Máx Espera (dias)", metrics["max_espera_dias"]])
+            ws.append(["Máx Total (dias)", metrics["max_total_dias"]])
+            for cell in ws[1]:
+                cell.font = hdr_font
+                cell.fill = hdr_fill
+                cell.alignment = Alignment(horizontal="center")
+                cell.border = thin_border
+            ws.column_dimensions["A"].width = 28
+            ws.column_dimensions["B"].width = 14
+
+            # ── Sheet 2: Ranking ────────────────────────────────────────────
+            ws2 = wb.create_sheet("Ranking")
+            rank_headers = ["#", "Título", "Coluna", "Status SLA",
+                            "Abertura", "Início", "Término",
+                            "Espera (dias)", "Atend. (dias)", "Total (dias)"]
+            ws2.append(rank_headers)
+            for i, card in enumerate(ranking, 1):
+                ws2.append([
+                    i, card["titulo"], card["status_kanban"],
+                    card["status_sla"],
+                    card["data_abertura"], card["data_inicio"],
+                    card["data_termino"],
+                    card["espera_dias"] if card["espera_dias"] is not None else "",
+                    card["atendimento_dias"] if card["atendimento_dias"] is not None else "",
+                    card["total_dias"] if card["total_dias"] is not None else "",
+                ])
+            for cell in ws2[1]:
+                cell.font = hdr_font
+                cell.fill = hdr_fill
+                cell.border = thin_border
+            for col in "ABCDEFGHIJ":
+                ws2.column_dimensions[col].width = 16
+
+            # ── Sheet 3: Distribuição ───────────────────────────────────────
+            ws3 = wb.create_sheet("Distribuição")
+            ws3.append(["Coluna / Classificação", "Quantidade"])
+            for status, count in distribuicao_status.items():
+                ws3.append([status, count])
+            ws3.append([])
+            ws3.append(["Classificação SLA", "Quantidade"])
+            for key, count in status_sla_counts.items():
+                ws3.append([key, count])
+            for cell in ws3[1] + ws3[ws3.max_row - 3 + 1 if ws3.max_row > 3 else []]:
+                cell.font = hdr_font
+                cell.fill = hdr_fill
+
+            # ── Sheet 4: Resumo IA ─────────────────────────────────────────
+            ws4 = wb.create_sheet("Resumo IA")
+            ws4.cell(row=1, column=1, value="Resumo Executivo").font = hdr_font
+            ws4.cell(row=1, column=1).fill = hdr_fill
+            ws4.cell(row=3, column=1, value=ai_response or "Sem resumo disponível.")
+            ws4.column_dimensions["A"].width = 100
+
+            # ── Response ────────────────────────────────────────────────────
+            response = HttpResponse(
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            response["Content-Disposition"] = (
+                f'attachment; filename="relatorio_sla_{page.id}_{datetime.now().strftime("%Y%m%d")}.xlsx"'
+            )
+            wb.save(response)
+            return response
+
+        return Response({"detail": f"Formato '{formato}' não suportado."},
+                        status=status.HTTP_400_BAD_REQUEST)

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório SLA — {{ nome_pagina }}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f4f6fa;color:#1a1a2e;padding:40px 20px}
+  .container{max-width:960px;margin:0 auto}
+  /* Card */
+  .card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:24px;margin-bottom:20px}
+  .card h2{font-size:16px;font-weight:700;color:#0b122c;margin-bottom:16px;padding-bottom:8px;border-bottom:2px solid #eef0f4}
+  /* Header */
+  .header{text-align:center;margin-bottom:32px}
+  .header h1{font-size:24px;color:#01135d;font-weight:800}
+  .header p{font-size:13px;color:#666;margin-top:4px}
+  /* Metrics grid */
+  .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+  .metric{background:#f8f9fc;border-radius:8px;padding:16px;text-align:center}
+  .metric .value{font-size:28px;font-weight:800;color:#01135d}
+  .metric .label{font-size:11px;color:#6b7280;margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+  .metric .value.green{color:#10b981}
+  .metric .value.red{color:#ef4444}
+  .metric .value.blue{color:#3b82f6}
+  /* Bar chart */
+  .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .bar-row .bar-label{width:100px;font-size:12px;color:#374151;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bar-track{flex:1;height:16px;background:#e5e7eb;border-radius:8px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:8px;transition:width .3s;min-width:4px}
+  .bar-count{width:32px;text-align:right;font-size:12px;font-weight:600;color:#374151}
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;padding:8px 10px;background:#f8f9fc;color:#0b122c;font-weight:700;border-bottom:2px solid #e5e7eb}
+  td{padding:8px 10px;border-bottom:1px solid #f0f0f0}
+  .sla-tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+  .sla-ok{background:#d1fae5;color:#065f46}
+  .sla-warn{background:#fef3c7;color:#92400e}
+  .sla-bad{background#fee2e2;color:#991b1b}
+  /* Resumo */
+  .resumo{font-size:13px;line-height:1.7;color:#374151;white-space:pre-wrap}
+  .resumo strong{color:#01135d}
+  /* Fields created */
+  .fields{display:flex;flex-wrap:wrap;gap:6px}
+  .field-pill{padding:4px 12px;border-radius:14px;font-size:11px;font-weight:500;background:#e0e7ff;color:#3730a3}
+  /* Footer */
+  .footer{text-align:center;font-size:11px;color:#9ca3af;margin-top:32px}
+  @media print{body{background:#fff;padding:20px}.card{box-shadow:none;border:1px solid #eee}}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>📊 Relatório SLA</h1>
+    <p>{{ nome_pagina }} — gerado em {{ gerado_em }}</p>
+  </div>
+
+  <!-- Métricas -->
+  <div class="card">
+    <h2>Métricas Gerais</h2>
+    <div class="metrics">
+      <div class="metric">
+        <div class="value blue">{{ metricas.total_cards }}</div>
+        <div class="label">Total de Cards</div>
+      </div>
+      <div class="metric">
+        <div class="value green">{{ metricas.validos }}</div>
+        <div class="label">Dentro do SLA</div>
+      </div>
+      <div class="metric">
+        <div class="value {% if taxa_conformidade >= 70 %}green{% else %}red{% endif %}">{{ taxa_conformidade }}%</div>
+        <div class="label">Taxa de Conformidade</div>
+      </div>
+      <div class="metric">
+        <div class="value blue">{{ metricas.atendimento_medio_dias }}</div>
+        <div class="label">Atendimento Médio (dias)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Distribuição por Coluna -->
+  {% if graficos.distribuicao_status %}
+  <div class="card">
+    <h2>Distribuição por Coluna</h2>
+    {% for status, count in graficos.distribuicao_status.items %}
+    {% with max_count=graficos.distribuicao_status.values|dictsort:0|last %}
+    <div class="bar-row">
+      <span class="bar-label">{{ status }}</span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:{% widthratio count max_count 100 %}%;background:#3b82f6"></div>
+      </div>
+      <span class="bar-count">{{ count }}</span>
+    </div>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Classificação SLA -->
+  {% if graficos.status_sla_counts %}
+  <div class="card">
+    <h2>Classificação SLA</h2>
+    {% for key, count in graficos.status_sla_counts.items %}
+    {% with max_sla=graficos.status_sla_counts.values|dictsort:0|last %}
+    <div class="bar-row">
+      <span class="bar-label">
+        {% if key == "concluido" %}✅ Concluído
+        {% elif key == "em_andamento" %}🔄 Em andamento
+        {% else %}⚠️ Inconsistente{% endif %}
+      </span>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:{% widthratio count max_sla 100 %}%;
+          {% if key == "concluido" %}background:#10b981
+          {% elif key == "em_andamento" %}background:#3b82f6
+          {% else %}background:#ef4444{% endif %}"></div>
+      </div>
+      <span class="bar-count">{{ count }}</span>
+    </div>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Ranking -->
+  <div class="card">
+    <h2>Ranking de Cards</h2>
+    <table>
+      <thead>
+        <tr><th>#</th><th>Título</th><th>Coluna</th><th>SLA</th><th>Abertura</th><th>Espera</th><th>Atendimento</th></tr>
+      </thead>
+      <tbody>
+      {% for card in ranking %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">{{ card.titulo }}</td>
+          <td>{{ card.status_kanban }}</td>
+          <td><span class="sla-tag sla-{{ card.status_sla }}">{{ card.status_sla }}</span></td>
+          <td>{{ card.data_abertura }}</td>
+          <td>{{ card.espera_dias|default:"-" }}</td>
+          <td>{{ card.atendimento_dias|default:"-" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Resumo IA -->
+  {% if resumo_ia %}
+  <div class="card">
+    <h2>📋 Resumo Executivo</h2>
+    <div class="resumo">{{ resumo_ia }}</div>
+  </div>
+  {% endif %}
+
+  <!-- Campos Criados -->
+  {% if fields_created %}
+  <div class="card">
+    <h2>Campos Criados</h2>
+    <div class="fields">
+    {% for field in fields_created %}
+      <span class="field-pill">{{ field.nome }} ({{ field.kind }})</span>
+    {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="footer">
+    Relatório gerado automaticamente • BincNote v2
+  </div>
+
+</div>
+</body>
+</html>

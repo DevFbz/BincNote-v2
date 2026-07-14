@@ -342,6 +342,28 @@ export function AIChatPanel({
     suggestion.action?.();
   }, [paginaId]);
 
+  // Download SLA report in a specific format
+  const downloadSLA = useCallback((formato: "html" | "xlsx") => {
+    if (!paginaId) return;
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "/api/ai/relatorio-sla/";
+    form.target = "_blank";
+    form.style.display = "none";
+    const add = (name: string, value: string) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    };
+    add("pagina_id", String(paginaId));
+    add("formato", formato);
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+  }, [paginaId]);
+
   const messages = activeConversation?.messages ?? [];
 
   // Check if a message looks like content to apply
@@ -806,6 +828,24 @@ export function AIChatPanel({
                 ℹ️ Campos criados automaticamente: {slaReport.fields_created.map(f => f.nome).join(", ")}
               </div>
             )}
+
+            {/* Download buttons */}
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => downloadSLA("html")}
+                className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
+                style={{ background: "#1e5fa8", color: "#fff" }}
+              >
+                🌐 Baixar HTML
+              </button>
+              <button
+                onClick={() => downloadSLA("xlsx")}
+                className="text-xs px-3 py-1.5 rounded-md font-medium transition-colors"
+                style={{ background: "#10b981", color: "#fff" }}
+              >
+                📊 Baixar Excel
+              </button>
+            </div>
           </div>
         )}
 
