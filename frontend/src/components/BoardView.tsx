@@ -455,7 +455,15 @@ export function BoardView({
 
   const columnsToRender = useMemo(() => {
     if (!db?.fields) return [];
-    const sorted = [...db.fields].sort((a, b) => a.ordem - b.ordem);
+    // Deduplicate by name (safety net against backend duplicates)
+    const seenNames = new Set<string>();
+    const deduped = db.fields.filter((f) => {
+      const key = f.nome?.toLowerCase() ?? "";
+      if (seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    });
+    const sorted = [...deduped].sort((a, b) => a.ordem - b.ordem);
     const titleF = sorted.find((f) => f.kind === "title" || f.kind === "text");
     if (!titleF) return sorted;
     const others = sorted.filter((f) => f.id !== titleF.id);

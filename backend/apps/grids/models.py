@@ -45,6 +45,7 @@ class Field(models.Model):
         verbose_name = "Campo"
         verbose_name_plural = "Campos"
         ordering = ["ordem", "id"]
+        unique_together = ("database", "nome")
 
     def __str__(self) -> str:
         return f"{self.nome} ({self.kind})"

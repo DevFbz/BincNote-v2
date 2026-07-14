@@ -1,3 +1,5 @@
+A janela flutuante tem que ser em vertical igual da imagem.
+
 # BincNote — Correção do Bloco de Notas (Caret + Seleção Multi-Bloco) e Análise Geral do App
 
 > Documento para ser consumido por uma CLI de codificação. Contém (1) prompt refinado, (2) PRD técnico com diagnóstico de causa raiz, comparação de bibliotecas e plano de execução.
@@ -37,64 +39,64 @@ os elementos.
 
 Isso precisa ser corrigido para que:
 - Arrastar o mouse selecione texto continuamente através de múltiplos
-  blocos/linhas, com destaque visual correto.
+blocos/linhas, com destaque visual correto.
 - Ctrl+A selecione todo o conteúdo do bloco de notas (todas as linhas/blocos).
 - Copiar (Ctrl+C) uma seleção multi-bloco e colar em outro lugar deve
-  preservar o texto corretamente (na pior hipótese, como texto puro
-  quebrado por linha).
+preservar o texto corretamente (na pior hipótese, como texto puro
+quebrado por linha).
 
 O que preciso que você faça:
 
 1. Diagnosticar a causa raiz de ambos os bugs no código atual do bloco de
-   notas (como o componente é estruturado, como o estado é gerenciado,
-   como o DOM é atualizado a cada edição).
+notas (como o componente é estruturado, como o estado é gerenciado,
+como o DOM é atualizado a cada edição).
 
 2. Pesquisar e avaliar bibliotecas de editor de blocos (block-based rich
-   text editor) mantidas ativamente e compatíveis com a stack do projeto,
-   como possíveis substitutas de uma implementação manual com múltiplos
-   contentEditable — considerando que esse tipo de bug (caret pulando,
-   seleção presa em um bloco) é exatamente o tipo de problema que editores
-   maduros como BlockNote, Lexical, TipTap/ProseMirror ou Plate.js já
-   resolveram internamente com um modelo de documento único e um sistema
-   de seleção próprio que funciona através de múltiplos blocos.
+text editor) mantidas ativamente e compatíveis com a stack do projeto,
+como possíveis substitutas de uma implementação manual com múltiplos
+contentEditable — considerando que esse tipo de bug (caret pulando,
+seleção presa em um bloco) é exatamente o tipo de problema que editores
+maduros como BlockNote, Lexical, TipTap/ProseMirror ou Plate.js já
+resolveram internamente com um modelo de documento único e um sistema
+de seleção próprio que funciona através de múltiplos blocos.
 
 3. Decidir e justificar tecnicamente uma entre duas abordagens:
-   (a) Corrigir a implementação atual manualmente (preservando/restaurando
-       o Range da seleção corretamente a cada re-render, e unificando os
-       blocos sob uma única área de seleção/gerenciamento de foco); ou
-   (b) Migrar o bloco de notas para uma biblioteca madura de editor de
-       blocos, mantendo a experiência visual atual (separação por blocos
-       ao apertar Enter).
-   A decisão deve levar em conta: esforço de migração, compatibilidade
-   com o formato de dados já salvo no JSON de persistência do projeto,
-   tamanho de bundle, manutenção ativa da biblioteca, e se ela resolve
-   os dois bugs de forma nativa.
+(a) Corrigir a implementação atual manualmente (preservando/restaurando
+o Range da seleção corretamente a cada re-render, e unificando os
+blocos sob uma única área de seleção/gerenciamento de foco); ou
+(b) Migrar o bloco de notas para uma biblioteca madura de editor de
+blocos, mantendo a experiência visual atual (separação por blocos
+ao apertar Enter).
+A decisão deve levar em conta: esforço de migração, compatibilidade
+com o formato de dados já salvo no JSON de persistência do projeto,
+tamanho de bundle, manutenção ativa da biblioteca, e se ela resolve
+os dois bugs de forma nativa.
 
 4. Implementar a solução escolhida, garantindo que:
-   - o cursor nunca "pule" de posição durante a digitação normal,
-   - seleção de texto funcione de forma contínua entre múltiplos blocos,
-   - o conteúdo continue sendo salvo corretamente no JSON de persistência
-     (não regredir a correção de auto-save feita anteriormente),
-   - a divisão em blocos ao apertar Enter continue funcionando como hoje.
+- o cursor nunca "pule" de posição durante a digitação normal,
+- seleção de texto funcione de forma contínua entre múltiplos blocos,
+- o conteúdo continue sendo salvo corretamente no JSON de persistência
+(não regredir a correção de auto-save feita anteriormente),
+- a divisão em blocos ao apertar Enter continue funcionando como hoje.
 
 5. Validar os seguintes cenários após a correção:
-   - Digitar um texto longo continuamente sem pausas → cursor nunca sai
-     do lugar certo.
-   - Digitar, parar, digitar de novo várias vezes → texto permanece na
-     ordem certa, cursor sempre no ponto onde parou.
-   - Criar 5+ blocos (linhas) de texto → arrastar o mouse do início do
-     primeiro bloco até o fim do último → toda a seleção deve ficar
-     destacada.
-   - Ctrl+A dentro do bloco de notas → tudo selecionado.
-   - Copiar seleção multi-bloco e colar em outro editor de texto (ex:
-     bloco de notas do sistema) → conteúdo textual preservado, em ordem.
-   - Fechar e reabrir a aba do card → conteúdo permanece salvo e correto
-     (sem regressão do bug de persistência já corrigido).
+- Digitar um texto longo continuamente sem pausas → cursor nunca sai
+do lugar certo.
+- Digitar, parar, digitar de novo várias vezes → texto permanece na
+ordem certa, cursor sempre no ponto onde parou.
+- Criar 5+ blocos (linhas) de texto → arrastar o mouse do início do
+primeiro bloco até o fim do último → toda a seleção deve ficar
+destacada.
+- Ctrl+A dentro do bloco de notas → tudo selecionado.
+- Copiar seleção multi-bloco e colar em outro editor de texto (ex:
+bloco de notas do sistema) → conteúdo textual preservado, em ordem.
+- Fechar e reabrir a aba do card → conteúdo permanece salvo e correto
+(sem regressão do bug de persistência já corrigido).
 
 6. Depois de concluir a correção, analisar o restante do código-fonte do
-   BincNote (além do bloco de notas) e me dar uma lista de sugestões de
-   melhoria priorizadas — de performance, UX, arquitetura, robustez de
-   dados, ou qualquer risco/dívida técnica identificado durante a análise.
+BincNote (além do bloco de notas) e me dar uma lista de sugestões de
+melhoria priorizadas — de performance, UX, arquitetura, robustez de
+dados, ou qualquer risco/dívida técnica identificado durante a análise.
 
 Bug/Regressão adicional — Toolbar flutuante de seleção de texto:
 Anteriormente, ao selecionar qualquer palavra ou trecho de texto dentro do
@@ -115,43 +117,118 @@ inteira (não uma vez por bloco, não duplicada, não quebrada).
 
 O que preciso que você faça sobre a toolbar:
 1. Investigar no histórico do código (git log/blame no componente do bloco
-   de notas) por que e quando essa toolbar foi removida, para entender se
-   havia um motivo técnico (bug, conflito com outra funcionalidade) antes
-   de simplesmente trazer o mesmo código de volta.
+de notas) por que e quando essa toolbar foi removida, para entender se
+havia um motivo técnico (bug, conflito com outra funcionalidade) antes
+de simplesmente trazer o mesmo código de volta.
 2. Reimplementar a toolbar flutuante, corrigindo os problemas que
-   provavelmente existiam antes (ou que vão aparecer com a correção do
-   Bug 2), garantindo:
-   - Aparecer somente quando existe uma seleção real de texto (range com
-     conteúdo), nunca ao simplesmente posicionar o cursor sem selecionar.
-   - Posicionar-se corretamente próxima à seleção (acima, centralizada em
-     relação à área selecionada), inclusive quando a seleção começa em um
-     bloco e termina em outro.
-   - Continuar funcionando (reposicionar ou fechar corretamente) durante
-     scroll, resize da janela, ou se a seleção for alterada com o mouse
-     ainda pressionado.
-   - Fechar automaticamente ao clicar fora, apertar Esc, ou perder a
-     seleção.
-   - Não duplicar/piscar quando a seleção atravessa múltiplos blocos.
-   - Aplicar a formatação escolhida corretamente em toda a extensão da
-     seleção, mesmo quando ela cobre múltiplos blocos.
+provavelmente existiam antes (ou que vão aparecer com a correção do
+Bug 2), garantindo:
+- Aparecer somente quando existe uma seleção real de texto (range com
+conteúdo), nunca ao simplesmente posicionar o cursor sem selecionar.
+- Posicionar-se corretamente próxima à seleção (acima, centralizada em
+relação à área selecionada), inclusive quando a seleção começa em um
+bloco e termina em outro.
+- Continuar funcionando (reposicionar ou fechar corretamente) durante
+scroll, resize da janela, ou se a seleção for alterada com o mouse
+ainda pressionado.
+- Fechar automaticamente ao clicar fora, apertar Esc, ou perder a
+seleção.
+- Não duplicar/piscar quando a seleção atravessa múltiplos blocos.
+- Aplicar a formatação escolhida corretamente em toda a extensão da
+seleção, mesmo quando ela cobre múltiplos blocos.
 3. Validar o comportamento com os seguintes cenários:
-   - Selecionar uma palavra dentro de um único bloco → toolbar aparece
-     corretamente posicionada.
-   - Selecionar texto que atravessa 2+ blocos → toolbar aparece uma única
-     vez, na posição correta, e a formatação aplicada afeta toda a seleção.
-   - Clicar fora da seleção → toolbar desaparece.
-   - Rolar a página com a seleção ativa → toolbar acompanha ou desaparece
-     de forma limpa (sem ficar "flutuando" em posição errada).
-   - Refazer a seleção repetidamente (selecionar, desselecionar, selecionar
-     de novo) → toolbar nunca duplica nem trava na tela.
+- Selecionar uma palavra dentro de um único bloco → toolbar aparece
+corretamente posicionada.
+- Selecionar texto que atravessa 2+ blocos → toolbar aparece uma única
+vez, na posição correta, e a formatação aplicada afeta toda a seleção.
+- Clicar fora da seleção → toolbar desaparece.
+- Rolar a página com a seleção ativa → toolbar acompanha ou desaparece
+de forma limpa (sem ficar "flutuando" em posição errada).
+- Refazer a seleção repetidamente (selecionar, desselecionar, selecionar
+de novo) → toolbar nunca duplica nem trava na tela.
+
+Especificação detalhada de UI/UX da toolbar (baseada em referência visual
+anexada pelo usuário — print de uma toolbar equivalente já usada por ele):
+
+1. Barra de tipo de bloco (linha superior):
+- Ícone representando o tipo do bloco atual (ex: ícone de lista com
+marcadores quando o bloco selecionado for uma lista).
+- Texto com o nome do tipo do bloco atual, truncando com reticências
+se não couber no espaço disponível.
+- Seta ">" à direita: ao clicar, abre um submenu "transformar em" com
+os tipos de bloco disponíveis no BincNote. Selecionar um tipo
+diferente deve converter o bloco atual para o novo tipo, preservando
+o texto já digitado sempre que a conversão fizer sentido.
+
+2. Grade de ícones de formatação (logo abaixo):
+- Cor do texto/destaque (abre submenu de cores ao clicar).
+- Negrito, itálico, sublinhado, riscado — aplicam a formatação
+correspondente à seleção, com estado "pressionado" quando já ativa.
+- Limpar formatação — remove todas as formatações da seleção sem
+apagar o conteúdo.
+- Link — adiciona/edita um hyperlink na seleção; se já houver um link,
+abre o link atual para edição em vez de criar um novo.
+- Código inline — aplica fonte monoespaçada/estilo de código à seleção.
+- Equação matemática inline — converte a seleção para uma expressão em
+LaTeX renderizada inline.
+- "..." — menu de mais opções, para ações que não cabem na barra
+principal (reaproveitar o que já existir no menu de contexto do
+bloco, se houver, para não duplicar lógica).
+
+3. Linha de comentário:
+- Botão "Comentário" com ícone de balão de fala: cria um comentário
+ancorado exatamente no trecho selecionado (não um comentário geral
+do card/página).
+- Ícone de emoji à direita: abre um seletor de emoji para reagir
+rapidamente à seleção.
+
+4. Seção "Habilidades" (ações de IA sobre o texto selecionado, usando a
+IA já implementada no BincNote):
+- Cabeçalho "Habilidades" com ícone de configurações à direita.
+- Itens de ação, cada um enviando a seleção de texto atual como
+contexto para a IA, com uma instrução de sistema específica:
+- "Melhorar escrita": reescrever o trecho melhorando clareza e
+fluidez, mantendo o sentido original.
+- "Revisão": revisar gramática/ortografia do trecho, sem alterar
+o estilo.
+- "Explicar": gerar uma explicação do trecho selecionado, exibida
+como resposta separada (não substitui o texto original).
+- "Reformatar": reformatar a estrutura do trecho (ex: texto corrido
+virar lista, ou vice-versa). Deve ficar desabilitada quando a
+seleção não for compatível com reformatação (seleção vazia, ou
+tipo de bloco incompatível) — implementar essa checagem de forma
+explícita.
+- Resultado de cada ação deve ser exibido para o usuário aceitar
+(substituir o texto original) ou descartar, nunca substituir
+automaticamente sem confirmação.
+- A lista deve suportar rolagem interna se houver mais itens do que
+cabem no espaço visível.
+
+5. Rodapé "Edite com a IA":
+- Campo de entrada de texto livre para o usuário digitar uma
+instrução customizada (diferente das ações fixas de "Habilidades")
+para a IA aplicar sobre o texto selecionado.
+- Atalho de teclado para focar esse campo a partir da seleção ativa:
+Alt+Shift+E — confirmar antes se esse atalho já está em uso em
+outro lugar do BincNote, para evitar conflito, e escolher outro se
+necessário.
+- Ao submeter, o texto selecionado deve ser enviado como contexto
+junto com a instrução digitada, seguindo o mesmo padrão de
+aceitar/descartar do item 4.
+
+Antes de implementar essa especificação de UI, apresente:
+1. Mapeamento de quais dessas ações já existem em alguma forma no
+BincNote hoje (para reaproveitar em vez de duplicar lógica).
+2. Proposta das instruções de sistema exatas que serão enviadas à IA
+para cada ação de "Habilidades", para validação antes da implementação.
 
 Restrições:
 - Não perder nenhum dado já salvo dos usuários ao migrar formato, se a
-  opção de migração de biblioteca for escolhida (escrever um passo de
-  migração/conversão dos dados existentes, se necessário).
+opção de migração de biblioteca for escolhida (escrever um passo de
+migração/conversão dos dados existentes, se necessário).
 - Antes de implementar, apresente um diagnóstico curto da causa raiz de
-  cada bug e a decisão justificada entre corrigir manualmente ou migrar
-  de biblioteca, para eu validar antes de você codificar.
+cada bug e a decisão justificada entre corrigir manualmente ou migrar
+de biblioteca, para eu validar antes de você codificar.
 ```
 
 ---
@@ -270,6 +347,61 @@ A CLI deve, na fase de diagnóstico, escolher entre:
 
 ---
 
+### 2.4d Especificação Detalhada da Toolbar — UI e Ações de IA
+
+**Referência visual:** print anexado pelo usuário de uma toolbar equivalente já em uso, contendo 5 seções empilhadas verticalmente: (1) barra de tipo de bloco, (2) grade de ícones de formatação, (3) linha de comentário, (4) seção "Habilidades" com ações de IA, (5) rodapé "Edite com a IA" com campo livre e atalho de teclado.
+
+Esta seção detalha o conteúdo interno da toolbar especificada em 2.4b — 2.4b definiu o *comportamento* (posicionamento, abertura/fechamento, seleção multi-bloco); esta seção define o *conteúdo* exato de cada parte da toolbar.
+
+**Estrutura de conteúdo (de cima para baixo):**
+
+1. **Barra de tipo de bloco:** ícone + nome do tipo de bloco atual (truncado com reticências se necessário) + seta de expansão que abre um submenu "transformar em", listando os tipos de bloco disponíveis no BincNote. Trocar o tipo deve preservar o conteúdo textual sempre que a conversão for semanticamente possível.
+
+2. **Grade de formatação de texto:** cor/destaque (com submenu de cores), negrito, itálico, sublinhado, riscado (com estado visual "ativo" quando já aplicado à seleção), limpar formatação, link (edita link existente se já houver um na seleção), código inline, equação matemática inline (LaTeX), e um menu "..." para ações extras.
+
+3. **Linha de comentário:** botão "Comentário" que ancora o comentário no trecho exato selecionado (não no card/página inteiro), e um seletor de emoji para reação rápida à seleção.
+
+4. **Seção "Habilidades" (ações de IA):** cabeçalho com ícone de configurações + lista de ações, cada uma delegando a IA já existente do BincNote com uma instrução de sistema própria:
+- *Melhorar escrita* — reescreve o trecho priorizando clareza e fluidez, preservando o sentido.
+- *Revisão* — corrige gramática/ortografia sem alterar o estilo.
+- *Explicar* — gera uma explicação do trecho como resposta separada, sem substituir o texto original.
+- *Reformatar* — reestrutura o conteúdo (ex: texto ↔ lista); deve ficar desabilitada quando a seleção for incompatível com essa transformação.
+Todas as ações desta seção exigem confirmação do usuário (aceitar/descartar) antes de substituir o texto original. A lista suporta rolagem interna.
+
+5. **Rodapé "Edite com a IA":** campo de texto livre para instrução customizada + atalho de teclado dedicado (referência usa Alt+Shift+E — validar conflito com atalhos já existentes no BincNote antes de reutilizar). Segue o mesmo fluxo de aceitar/descartar da seção 4.
+
+**Requisitos funcionais adicionais:**
+
+| # | Requisito |
+|---|---|
+| RF16 | A barra de tipo de bloco permite converter o bloco atual para outro tipo suportado pelo BincNote, preservando o conteúdo sempre que semanticamente possível. |
+| RF17 | Os ícones de formatação (negrito, itálico, sublinhado, riscado) refletem visualmente se a formatação já está ativa na seleção atual. |
+| RF18 | A ação de link edita um link já existente na seleção em vez de criar um duplicado. |
+| RF19 | O comentário criado pela toolbar fica ancorado ao trecho de texto específico selecionado, não ao card/página como um todo. |
+| RF20 | Cada ação da seção "Habilidades" envia a seleção de texto atual como contexto para a IA já implementada, junto com uma instrução de sistema específica por ação. |
+| RF21 | A ação "Reformatar" é desabilitada automaticamente quando a seleção não é compatível com reformatação (seleção vazia ou tipo de bloco incompatível). |
+| RF22 | Nenhuma ação de IA (Habilidades ou "Edite com a IA") substitui o texto original automaticamente — o usuário deve aceitar ou descartar o resultado explicitamente. |
+| RF23 | O campo "Edite com a IA" aceita uma instrução customizada em texto livre e a envia junto com a seleção como contexto para a IA. |
+| RF24 | O atalho de teclado do campo "Edite com a IA" não conflita com atalhos já existentes no BincNote (validar antes de definir o atalho final). |
+
+**Critérios de aceite:**
+- [ ] Selecionar um bloco e trocar seu tipo pelo submenu "transformar em" → conteúdo é preservado corretamente.
+- [ ] Aplicar negrito/itálico/sublinhado/riscado → ícone correspondente reflete visualmente o estado ativo.
+- [ ] Criar um link, selecionar o mesmo texto novamente e abrir a toolbar → opção de link mostra/edita o link existente, não cria um segundo.
+- [ ] Criar um comentário via toolbar em um trecho específico → comentário aparece ancorado exatamente àquele trecho, não ao card inteiro.
+- [ ] Executar "Melhorar escrita"/"Revisão"/"Explicar" em uma seleção → resultado aparece para confirmação, sem substituir o texto automaticamente.
+- [ ] Tentar "Reformatar" com seleção vazia ou bloco incompatível → ação aparece desabilitada.
+- [ ] Usar o campo "Edite com a IA" com uma instrução customizada → resultado segue o mesmo fluxo de aceitar/descartar.
+- [ ] Acionar o atalho de teclado do campo "Edite com a IA" a partir de uma seleção ativa → campo recebe o foco corretamente, sem conflitar com outro atalho do BincNote.
+
+**Perguntas em aberto — conteúdo da toolbar:**
+- Quais tipos de bloco o BincNote já suporta hoje, para popular corretamente o submenu "transformar em"?
+- O BincNote já tem sistema de comentários ancorados a um trecho de texto (não só ao card/página inteira)? Se não existir, essa é uma feature nova, não apenas uma reimplementação de UI.
+- Existe algum atalho de teclado já reservado no BincNote que conflite com Alt+Shift+E? Qual atalho alternativo usar, se houver conflito?
+- As quatro ações de "Habilidades" (Melhorar escrita, Revisão, Explicar, Reformatar) devem ser fixas nesta primeira versão, ou o ícone de configurações ao lado do cabeçalho já precisa permitir customizar quais aparecem?
+
+---
+
 ### 2.5 Requisitos Funcionais
 
 | # | Requisito |
@@ -310,6 +442,8 @@ A CLI deve, na fase de diagnóstico, escolher entre:
 2. Garantir que o auto-save (correção anterior) continue funcionando com a nova implementação.
 3. Investigar o histórico do código para entender por que a toolbar flutuante de seleção foi removida.
 4. Reimplementar a toolbar flutuante (seção 2.4b) — manualmente (Opção A) ou via componente nativo da biblioteca escolhida, como "bubble menu" (Opção B) — já validando que funciona corretamente com seleção multi-bloco.
+5. Implementar o conteúdo detalhado da toolbar conforme a seção 2.4d (barra de tipo de bloco, grade de formatação, comentário ancorado, seção "Habilidades" e rodapé "Edite com a IA"), reaproveitando ações que já existam em outro lugar do BincNote (ex: negrito/itálico) em vez de duplicar lógica.
+6. Definir e validar com o usuário as instruções de sistema exatas enviadas à IA para cada ação de "Habilidades" antes de finalizar a integração.
 
 **Fase 2 — Migração de dados (se Opção B):**
 1. Escrever script/rotina de conversão do formato antigo de notas para o novo formato de documento.
@@ -337,9 +471,3 @@ Para que a análise de código não fique genérica, oriente a CLI a observar es
 - **Tratamento de erros e estados vazios:** cards sem conteúdo, arquivos JSON corrompidos, conflitos de escrita.
 
 ---
-
-### 2.9 Perguntas em Aberto
-
-- O restante do BincNote (blocos de texto normais nas páginas, não só o bloco de notas do card) já usa alguma biblioteca de editor (Tiptap, Lexical, Slate, etc.)? Isso muda diretamente a recomendação da seção 2.3. Resposta: blocos de texto normais nas páginas tem que ter a biblioteca TIPTAP
-- Existe expectativa de colaboração em tempo real (múltiplos usuários editando o mesmo bloco de notas simultaneamente) em uma fase futura? Isso pesa a favor de bibliotecas com suporte nativo a Yjs/CRDT, como BlockNote ou Tiptap.
-- Qual o volume médio de conteúdo nos blocos de notas hoje (poucas linhas vs. documentos longos)? Isso ajuda a decidir se vale o esforço de migração de biblioteca agora ou se um patch manual resolve o suficiente por enquanto.

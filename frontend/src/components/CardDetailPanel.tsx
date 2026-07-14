@@ -689,6 +689,15 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
     (f) => f.kind !== "title" && !EXCLUDED_FIELD_NAMES.includes(f.nome?.toLowerCase() ?? "")
   ) ?? [];
 
+  // Deduplicate by name (safety net against backend duplicates)
+  const seenNames = new Set<string>();
+  const dedupedFields = displayFields.filter((f) => {
+    const key = f.nome?.toLowerCase() ?? "";
+    if (seenNames.has(key)) return false;
+    seenNames.add(key);
+    return true;
+  });
+
   // Sort: date fields first ("data inicio", "data abertura", "data termino"), then rest
   const datePriority: Record<string, number> = {
     "data inicio": 0,
@@ -702,7 +711,7 @@ export function CardDetailPanel({ record, fields, databaseId, onClose, onRefresh
     "select": 6,
     "status": 6,
   };
-  const sortedFields = [...displayFields].sort((a, b) => {
+  const sortedFields = [...dedupedFields].sort((a, b) => {
     const aDatePrio = datePriority[a.nome?.toLowerCase() ?? ""] ?? -1;
     const bDatePrio = datePriority[b.nome?.toLowerCase() ?? ""] ?? -1;
     if (aDatePrio !== -1 || bDatePrio !== -1) {
