@@ -76,18 +76,18 @@ export default React.memo(function Block({ block, onChange, onDelete, onAddAbove
     }
   }, []);
 
-  // Sync content from external changes (AI, type change, initial load)
-  // without fighting user's typing cursor
+  // Sync content when block type changes (structure reset needed)
+  // NOT on content changes — DOM already has the latest text during typing
+  // and setting textContent destroys the cursor position.
   useEffect(() => {
     const el = inputRef.current;
     if (!el) return;
-    // Skip sync if user is actively typing — DOM already has latest
-    if (isTypingRef.current) return;
     const current = el.textContent ?? "";
     if (current !== block.content) {
       el.textContent = block.content;
     }
-  }, [block.content, block.type]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [block.type]);
 
   /* ── Handle keyboard ── */
   const handleKeyDown = useCallback(
