@@ -96,6 +96,55 @@ O que preciso que você faça:
    melhoria priorizadas — de performance, UX, arquitetura, robustez de
    dados, ou qualquer risco/dívida técnica identificado durante a análise.
 
+Bug/Regressão adicional — Toolbar flutuante de seleção de texto:
+Anteriormente, ao selecionar qualquer palavra ou trecho de texto dentro do
+bloco de notas, aparecia uma janela/barra flutuante com opções rápidas de
+formatação (ex: negrito, itálico, etc.) próxima à seleção. Essa toolbar foi
+removida em algum momento e precisa voltar — mas com melhorias no
+funcionamento, não apenas restaurada como estava.
+
+Referência visual: anexei um print do Notion mostrando o comportamento
+esperado de seleção — nele, o texto selecionado atravessa vários blocos
+diferentes (múltiplos itens de lista com marcadores e um título de etapa
+em negrito), e mesmo assim a seleção fica destacada de forma contínua por
+todos os blocos, sem quebrar em cada bloco individual. Esse é o mesmo
+comportamento exigido no Bug 2 acima (seleção multi-bloco) — a toolbar
+flutuante deve funcionar corretamente também nesse cenário de seleção que
+atravessa múltiplos blocos, aparecendo uma única vez para a seleção
+inteira (não uma vez por bloco, não duplicada, não quebrada).
+
+O que preciso que você faça sobre a toolbar:
+1. Investigar no histórico do código (git log/blame no componente do bloco
+   de notas) por que e quando essa toolbar foi removida, para entender se
+   havia um motivo técnico (bug, conflito com outra funcionalidade) antes
+   de simplesmente trazer o mesmo código de volta.
+2. Reimplementar a toolbar flutuante, corrigindo os problemas que
+   provavelmente existiam antes (ou que vão aparecer com a correção do
+   Bug 2), garantindo:
+   - Aparecer somente quando existe uma seleção real de texto (range com
+     conteúdo), nunca ao simplesmente posicionar o cursor sem selecionar.
+   - Posicionar-se corretamente próxima à seleção (acima, centralizada em
+     relação à área selecionada), inclusive quando a seleção começa em um
+     bloco e termina em outro.
+   - Continuar funcionando (reposicionar ou fechar corretamente) durante
+     scroll, resize da janela, ou se a seleção for alterada com o mouse
+     ainda pressionado.
+   - Fechar automaticamente ao clicar fora, apertar Esc, ou perder a
+     seleção.
+   - Não duplicar/piscar quando a seleção atravessa múltiplos blocos.
+   - Aplicar a formatação escolhida corretamente em toda a extensão da
+     seleção, mesmo quando ela cobre múltiplos blocos.
+3. Validar o comportamento com os seguintes cenários:
+   - Selecionar uma palavra dentro de um único bloco → toolbar aparece
+     corretamente posicionada.
+   - Selecionar texto que atravessa 2+ blocos → toolbar aparece uma única
+     vez, na posição correta, e a formatação aplicada afeta toda a seleção.
+   - Clicar fora da seleção → toolbar desaparece.
+   - Rolar a página com a seleção ativa → toolbar acompanha ou desaparece
+     de forma limpa (sem ficar "flutuando" em posição errada).
+   - Refazer a seleção repetidamente (selecionar, desselecionar, selecionar
+     de novo) → toolbar nunca duplica nem trava na tela.
+
 Restrições:
 - Não perder nenhum dado já salvo dos usuários ao migrar formato, se a
   opção de migração de biblioteca for escolhida (escrever um passo de
@@ -181,6 +230,46 @@ A CLI deve, na fase de diagnóstico, escolher entre:
 
 ---
 
+### 2.4b Feature Adicional — Toolbar Flutuante de Seleção de Texto
+
+**Contexto:** o bloco de notas já teve uma toolbar flutuante de formatação, exibida ao selecionar texto, que foi removida em algum momento. Precisa ser restaurada — com melhorias, não uma simples reversão.
+
+**Evidência de referência:** print do Notion (anexado pelo usuário) mostra o comportamento esperado de seleção: texto selecionado atravessando múltiplos blocos (vários itens de lista com marcadores + um título de etapa em negrito), com destaque contínuo por todos os blocos, sem quebrar a seleção em cada bloco individualmente. Isso reforça o requisito RF3 (seção 2.5) e é pré-requisito técnico para a toolbar funcionar corretamente em seleções multi-bloco.
+
+**Dependência importante:** esta feature depende da correção do Bug 2 (seleção multi-bloco). Implementar a toolbar antes de corrigir a seleção resultaria em uma toolbar que só funciona parcialmente (um bloco por vez), reproduzindo a limitação atual.
+
+**Passo prévio obrigatório:** antes de reimplementar, investigar no histórico do repositório (git log/blame no componente do bloco de notas ou da toolbar) o motivo da remoção — pode ter sido um bug conhecido, conflito com outra funcionalidade, ou decisão de produto. Esse contexto deve orientar o que evitar na reimplementação.
+
+**Requisitos funcionais da toolbar:**
+
+| # | Requisito |
+|---|---|
+| RF9 | A toolbar só aparece quando há uma seleção de texto real (range não vazio); nunca ao apenas posicionar o cursor. |
+| RF10 | A toolbar é posicionada próxima à área selecionada (tipicamente acima, centralizada), calculada a partir do bounding box real da seleção — inclusive quando a seleção começa em um bloco e termina em outro. |
+| RF11 | Em seleções que atravessam múltiplos blocos, a toolbar aparece **uma única vez** para a seleção inteira (nunca duplicada por bloco). |
+| RF12 | Ações de formatação da toolbar (negrito, itálico, etc. — confirmar conjunto de ações original no histórico do código) aplicam-se corretamente a toda a extensão da seleção, mesmo cruzando múltiplos blocos. |
+| RF13 | A toolbar fecha automaticamente ao: clicar fora, apertar Esc, ou a seleção ser perdida/alterada para vazia. |
+| RF14 | A toolbar se comporta corretamente durante scroll e resize da janela (reposiciona ou fecha de forma limpa, nunca fica "presa" em posição desatualizada). |
+| RF15 | Repetir seleção/desseleção várias vezes em sequência não duplica nem trava a toolbar na tela. |
+
+**Critérios de aceite:**
+- [ ] Selecionar palavra única em um bloco → toolbar aparece corretamente posicionada, uma única vez.
+- [ ] Selecionar texto atravessando 2+ blocos → toolbar aparece uma única vez, posicionada em relação à seleção completa.
+- [ ] Aplicar formatação em seleção multi-bloco → formatação é aplicada em toda a seleção, sem deixar trechos de fora.
+- [ ] Clicar fora da seleção → toolbar desaparece.
+- [ ] Rolar a página com seleção ativa → sem toolbar "flutuando" em posição errada.
+- [ ] Selecionar/desselecionar repetidamente → nenhuma duplicação ou travamento visual.
+
+---
+
+### 2.4c Perguntas em Aberto — Toolbar
+
+- Existe registro (issue, PR, changelog) do motivo real pelo qual a toolbar foi removida? Isso deve ser verificado antes de reimplementar para não reintroduzir o mesmo problema.
+- Quais ações de formatação a toolbar tinha originalmente? Se não for possível recuperar do histórico, qual conjunto mínimo é esperado agora (negrito, itálico, sublinhado, link, cor, comentário)?
+- Se a decisão da seção 2.4 for migrar para uma biblioteca de editor de blocos (Opção B), a própria biblioteca provavelmente já resolve a toolbar flutuante nativamente (ex: BlockNote e Tiptap têm "bubble menu" pronto) — nesse caso, a implementação manual da toolbar deixa de ser necessária e deve ser substituída pelo componente nativo da biblioteca escolhida.
+
+---
+
 ### 2.5 Requisitos Funcionais
 
 | # | Requisito |
@@ -219,6 +308,8 @@ A CLI deve, na fase de diagnóstico, escolher entre:
 **Fase 1 — Implementação da correção:**
 1. (Opção A) Reescrever o gerenciamento de seleção e unificar os blocos sob um único container editável; **ou** (Opção B) integrar a biblioteca escolhida, mantendo a API de dados compatível ou escrevendo um conversor.
 2. Garantir que o auto-save (correção anterior) continue funcionando com a nova implementação.
+3. Investigar o histórico do código para entender por que a toolbar flutuante de seleção foi removida.
+4. Reimplementar a toolbar flutuante (seção 2.4b) — manualmente (Opção A) ou via componente nativo da biblioteca escolhida, como "bubble menu" (Opção B) — já validando que funciona corretamente com seleção multi-bloco.
 
 **Fase 2 — Migração de dados (se Opção B):**
 1. Escrever script/rotina de conversão do formato antigo de notas para o novo formato de documento.
@@ -249,6 +340,6 @@ Para que a análise de código não fique genérica, oriente a CLI a observar es
 
 ### 2.9 Perguntas em Aberto
 
-- O restante do BincNote (blocos de texto normais nas páginas, não só o bloco de notas do card) já usa alguma biblioteca de editor (Tiptap, Lexical, Slate, etc.)? Isso muda diretamente a recomendação da seção 2.3.
+- O restante do BincNote (blocos de texto normais nas páginas, não só o bloco de notas do card) já usa alguma biblioteca de editor (Tiptap, Lexical, Slate, etc.)? Isso muda diretamente a recomendação da seção 2.3. Resposta: blocos de texto normais nas páginas tem que ter a biblioteca TIPTAP
 - Existe expectativa de colaboração em tempo real (múltiplos usuários editando o mesmo bloco de notas simultaneamente) em uma fase futura? Isso pesa a favor de bibliotecas com suporte nativo a Yjs/CRDT, como BlockNote ou Tiptap.
 - Qual o volume médio de conteúdo nos blocos de notas hoje (poucas linhas vs. documentos longos)? Isso ajuda a decidir se vale o esforço de migração de biblioteca agora ou se um patch manual resolve o suficiente por enquanto.

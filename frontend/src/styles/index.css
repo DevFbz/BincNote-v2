@@ -1594,3 +1594,47 @@ body {
 .ProseMirror li ::selection {
   background: rgba(82, 130, 255, 0.3);
 }
+
+/* ════════════════════════════════════════════
+   Floating toolbar (BubbleMenu)
+   ════════════════════════════════════════════ */
+
+.cdp-bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 8px;
+  background: #252525;
+  border: 1px solid #383838;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.cdp-bm-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #b0b0b0;
+  cursor: pointer;
+  transition: all 120ms;
+}
+.cdp-bm-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: #eee;
+}
+.cdp-bm-btn-active {
+  background: rgba(82, 130, 255, 0.2);
+  color: #82aaff;
+}
+.cdp-bm-sep {
+  width: 1px;
+  height: 20px;
+  background: #383838;
+  margin: 0 3px;
+  flex-shrink: 0;
+}
