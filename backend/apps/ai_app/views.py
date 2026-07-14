@@ -415,7 +415,7 @@ class SLAReportView(APIView):
             "resumo_ia": ai_response,
             "fields_created": fields_created,
             "campos_data": ["Data Abertura", "Data Inicio", "Data Término"],
-            "nome_pagina": page.nome,
+            "nome_pagina": page.titulo,
             "gerado_em": datetime.now().strftime("%d/%m/%Y %H:%M"),
             "taxa_conformidade": round(
                 (metrics["validos"] / metrics["total_cards"] * 100)
@@ -492,8 +492,8 @@ class SLAReportView(APIView):
             # ── Sheet 3: Distribuição ───────────────────────────────────────
             ws3 = wb.create_sheet("Distribuição")
             ws3.append(["Coluna / Classificação", "Quantidade"])
-            for status, count in distribuicao_status.items():
-                ws3.append([status, count])
+            for stat, count in distribuicao_status.items():
+                ws3.append([stat, count])
             ws3.append([])
             ws3.append(["Classificação SLA", "Quantidade"])
             for key, count in status_sla_counts.items():
