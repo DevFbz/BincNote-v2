@@ -8,10 +8,12 @@ import {
 import { api, type Pagina } from "../api/cliente";
 import { usePagina } from "../api/paginas";
 import { buscarDatabasePorPagina, criarTemplateKanban } from "../api/grids";
-import BlockEditor, { type BlockEditorHandle } from "../components/blocks/BlockEditor";
+import { NotionPageEditor } from "../components/blocks/NotionPageEditor";
 import { BoardView } from "../components/BoardView";
 import { AIChatPanel } from "../components/AIChatPanel";
 import { setFavicon, emojiToFavicon } from "../utils/favicon";
+import { useConfirm } from "../components/ui/ConfirmDialog";
+import { useToast } from "../components/ui/ConfirmDialog";
 import {
   ALL_TEMPLATES,
   TEMPLATES,
@@ -77,13 +79,15 @@ export function PaginaView({ id }: { id: number }) {
   const [abrirCapa, setAbrirCapa] = useState(false);
   const [dbId, setDbId] = useState<number | null>(null);
   const [mostrarTemplates, setMostrarTemplates] = useState(false);
-  const blockEditorRef = useRef<BlockEditorHandle | null>(null);
   const [abrirPainelTemplates, setAbrirPainelTemplates] = useState(false);
   const [aiAberto, setAiAberto] = useState(false);
   const [selectedText, setSelectedText] = useState<string>("");
   const [showParticular, setShowParticular] = useState(false);
   const [showPageMenu, setShowPageMenu] = useState(false);
   const [chatContext, setChatContext] = useState<{ type: 'page'; id: number; title: string } | { type: 'card'; id: number; title: string; pageTitle: string } | null>(null);
+
+  const { confirm, ConfirmModal } = useConfirm();
+  const { addToast } = useToast();
 
   // Card open/close → update chat context (tag ambiente)
   const handleCardChange = useCallback((card: { id: number; title: string } | null) => {
@@ -144,13 +148,21 @@ export function PaginaView({ id }: { id: number }) {
     const moverLixeira = async () => {
       if (!pagina) return;
       setShowPageMenu(false);
-      if (window.confirm("Mover esta página para a lixeira?")) {
+      const confirmed = await confirm({
+        title: "Mover esta página para a lixeira?",
+        description: "A página será movida para a lixeira e poderá ser restaurada posteriormente.",
+        confirmLabel: "Mover",
+        variant: "warning",
+      });
+      if (confirmed) {
         try {
           await api.del(`/documents/pages/${id}/`);
           qc.invalidateQueries({ queryKey: ["arvore"] });
           navigate("/lixeira");
+          addToast("Página movida para a lixeira", "success");
         } catch (e) {
           console.error("Erro ao mover para lixeira:", e);
+          addToast("Erro ao mover página", "error");
         }
       }
     };
@@ -305,7 +317,15 @@ export function PaginaView({ id }: { id: number }) {
     return <div className="p-8 text-txt-muted">{t("common.loading")}…</div>;
   }
 
-  const isNewPage = (!pagina.titulo || pagina.titulo === "") && (!pagina.conteudo || pagina.conteudo === null);
+  if (pagina.kind !== "database") {
+    return (
+      <NotionPageEditor
+        pagina={pagina}
+        onSave={(updates) => salvar.mutate(updates)}
+        onSaveConteudo={(conteudo) => salvarConteudo.mutate(conteudo)}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
@@ -555,21 +575,9 @@ export function PaginaView({ id }: { id: number }) {
 
 
           {/* Main editor */}
-          {pagina.kind === "database" ? (
-            <div className="px-8 pb-6 flex-1 min-h-[400px]">
-              <BoardView databaseId={dbId ?? 0} onOpenAI={() => setAiAberto(true)} onCardChange={handleCardChange} />
-            </div>
-          ) : (
-            <div className="min-h-[300px] px-8 pb-6">
-              <BlockEditor
-                ref={blockEditorRef}
-                initialContent={pagina.conteudo}
-                onChange={(docJson) => {
-                  salvarConteudo.mutate(docJson);
-                }}
-              />
-            </div>
-          )}
+          <div className="px-8 pb-6 flex-1 min-h-[400px]">
+            <BoardView databaseId={dbId ?? 0} onOpenAI={() => setAiAberto(true)} onCardChange={handleCardChange} />
+          </div>
         </div>
 
         {/* AI assistant FAB */}
@@ -663,6 +671,7 @@ export function PaginaView({ id }: { id: number }) {
           </div>
         </div>
       )}
+      {ConfirmModal}
     </div>
   );
 }

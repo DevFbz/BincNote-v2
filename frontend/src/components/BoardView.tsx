@@ -1,5 +1,8 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useConfirm } from "./ui/ConfirmDialog";
+import { useToast } from "./ui/ConfirmDialog";
+import { usePrompt } from "./ui/PromptDialog";
 import {
   DndContext,
   DragOverlay,
@@ -672,9 +675,20 @@ export function BoardView({
     setAddingTo(null);
   }
 
-  function handleDeleteCard(cardId: number) {
-    if (window.confirm("Excluir este cartão?")) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const { addToast } = useToast();
+  const { prompt, PromptModal } = usePrompt();
+
+  async function handleDeleteCard(cardId: number) {
+    const confirmed = await confirm({
+      title: "Excluir este cartão?",
+      description: "Essa ação não poderá ser desfeita. O cartão e todo o seu conteúdo serão removidos permanentemente.",
+      confirmLabel: "Excluir",
+      variant: "destructive",
+    });
+    if (confirmed) {
       deleteRecord.mutate(cardId);
+      addToast("Cartão excluído", "success");
     }
   }
 
@@ -846,10 +860,14 @@ export function BoardView({
                 <tr className="hover:bg-[#1f1f1f] transition-colors">
                   <td colSpan={columnsToRender.length + 1} className="p-0">
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         const defaultStatusCol = DEFAULT_COLUMNS[0]?.id; // "a-fazer"
                         const statusName = COLUMN_STATUS_MAP[defaultStatusCol] || "A fazer";
-                        const title = prompt("Digite o título da nova tarefa:");
+                        const title = await prompt({
+                          title: "Nova tarefa",
+                          description: "Digite o título da nova tarefa.",
+                          placeholder: "Título da tarefa",
+                        });
                         if (title && title.trim()) {
                           addRecord.mutate({ titulo: title.trim(), status: statusName });
                         }
@@ -877,6 +895,8 @@ export function BoardView({
           onOpenAI={onOpenAI}
         />
       )}
+      {ConfirmModal}
+      {PromptModal}
     </div>
   );
 }

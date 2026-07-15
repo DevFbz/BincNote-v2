@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { useEditor, EditorContent, BubbleMenu } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -37,6 +38,9 @@ import {
   CheckSquare,
 } from "lucide-react";
 import { api } from "../../api/cliente";
+import { BlockMenu } from "./BlockMenu";
+import { usePrompt } from "../ui/PromptDialog";
+import { useToast } from "../ui/ConfirmDialog";
 
 /* ── Public imperative API ── */
 export interface BlockEditorHandle {
@@ -133,11 +137,26 @@ interface TransformOption {
 function TransformDropdown({
   onPick,
   onClose,
+  anchorRef,
 }: {
   onPick: (type: string, attrs?: any) => void;
   onClose: () => void;
+  anchorRef: React.RefObject<HTMLDivElement>;
 }) {
   const [hoveredSub, setHoveredSub] = useState<string | null>(null);
+  const itemRefs = useRef<Record<string, HTMLDivElement>>({});
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+
+  // Position dropdown based on anchor element
+  useEffect(() => {
+    if (anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + 4,
+        left: rect.left,
+      });
+    }
+  }, [anchorRef]);
 
   const options: (TransformOption & { sub?: Omit<TransformOption, "sub">[] })[] = [
     {
@@ -209,50 +228,79 @@ function TransformDropdown({
       label: "Citação",
       icon: <Text size={14} />,
       command: () => onPick("blockquote"),
-      preview: { tag: "“", sample: "Citação" },
+      preview: { tag: "\u201C", sample: "Citação" },
     },
   ];
 
+  // Find the hovered item's rect to position the portal
+  const hoveredItemRect = hoveredSub
+    ? itemRefs.current[hoveredSub]?.getBoundingClientRect()
+    : null;
+
+  // Portal for sub-menu - renders in document.body to avoid clipping by BubbleMenu/Tippy
+  const subMenuPortal = hoveredSub && hoveredItemRect
+    ? createPortal(
+        <div
+          className="cdp-bm-transform-sub"
+          style={{
+            position: "fixed",
+            top: hoveredItemRect.top,
+            left: hoveredItemRect.right + 8,
+            zIndex: 9999,
+          }}
+          onMouseLeave={() => setHoveredSub(null)}
+        >
+          {options.find((opt) => opt.id === hoveredSub)?.sub?.map((sub) => (
+            <div
+              key={sub.id}
+              className="cdp-bm-transform-sub-item"
+              onClick={(e) => {
+                e.stopPropagation();
+                sub.command();
+              }}
+            >
+              <span className="cdp-bm-transform-item-icon">{sub.icon}</span>
+              <div className="cdp-bm-transform-sub-content">
+                <span className="cdp-bm-transform-sub-tag">{sub.preview?.tag}</span>
+                <span className="cdp-bm-transform-sub-sample">
+                  {sub.preview?.sample}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>,
+        document.body
+      )
+    : null;
+
   return (
-    <div className="cdp-bm-transform-dropdown" onMouseLeave={() => setHoveredSub(null)}>
+    <div
+      className="cdp-bm-transform-dropdown"
+      style={{
+        position: "fixed",
+        top: position?.top ?? 0,
+        left: position?.left ?? 0,
+        zIndex: 9999,
+      }}
+      onMouseLeave={() => setHoveredSub(null)}
+    >
       {options.map((opt) => (
         <div
           key={opt.id}
+          ref={(el) => { if (el) itemRefs.current[opt.id] = el; }}
           className="cdp-bm-transform-item"
           onMouseEnter={() => opt.sub && setHoveredSub(opt.id)}
-          onClick={() => {
-            if (!opt.sub) opt.command();
-          }}
+          onClick={() => { if (!opt.sub) opt.command(); }}
         >
           <span className="cdp-bm-transform-item-icon">{opt.icon}</span>
-          <span className="cdp-bm-transform-item-label">{opt.label}</span>
+          <div className="cdp-bm-transform-item-preview">
+            <span className="cdp-bm-transform-item-tag">{opt.preview?.tag}</span>
+            <span className="cdp-bm-transform-item-sample">{opt.preview?.sample}</span>
+          </div>
           {opt.sub && <ChevronRight size={11} className="cdp-bm-transform-item-arrow" />}
-
-          {/* Hover sub-window (Notion-style) */}
-          {opt.sub && hoveredSub === opt.id && (
-            <div className="cdp-bm-transform-sub">
-              {opt.sub.map((sub) => (
-                <div
-                  key={sub.id}
-                  className="cdp-bm-transform-sub-item"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    sub.command();
-                  }}
-                >
-                  <span className="cdp-bm-transform-item-icon">{sub.icon}</span>
-                  <div className="cdp-bm-transform-sub-content">
-                    <span className="cdp-bm-transform-sub-tag">{sub.preview?.tag}</span>
-                    <span className="cdp-bm-transform-sub-sample">
-                      {sub.preview?.sample}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       ))}
+      {subMenuPortal}
     </div>
   );
 }
@@ -304,6 +352,11 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
     const [aiResult, setAiResult] = useState<{ acao: string; text: string } | null>(null);
     const [customPrompt, setCustomPrompt] = useState("");
     const [showTransformSubmenu, setShowTransformSubmenu] = useState(false);
+    const [showBlockMenu, setShowBlockMenu] = useState(false);
+    const [blockMenuPosition, setBlockMenuPosition] = useState({ top: 0, left: 0 });
+
+    const { prompt, PromptModal } = usePrompt();
+    const { addToast } = useToast();
 
     // Hover-open for block-type indicator
     const isTouchDevice =
@@ -367,18 +420,70 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
         onChangeRef.current?.(ed.getJSON());
       },
       onCreate: ({ editor: ed }) => {
+        let selectionTimeout: number | null = null;
+        let isSelecting = false;
+
+        // Track mouse down/up to detect active selection drag
+        const handleMouseDown = () => { isSelecting = true; };
+        const handleMouseUp = () => {
+          isSelecting = false;
+          // Fire selection after drag ends
+          const { from, to } = ed.state.selection;
+          if (from !== to) {
+            const texto = ed.state.doc.textBetween(from, to);
+            if (texto.trim()) {
+              setSelectedText(texto);
+              onSelectRef.current?.(texto);
+            }
+          }
+        };
+
+        ed.view.dom.addEventListener("mousedown", handleMouseDown);
+        document.addEventListener("mouseup", handleMouseUp);
+
+        // Show block menu on "/" key
+        const handleKeyDown = (e: KeyboardEvent) => {
+          if (e.key === "/" && !e.ctrlKey && !e.metaKey) {
+            const { from } = ed.state.selection;
+            const textBefore = ed.state.doc.textBetween(Math.max(0, from - 1), from);
+            if (textBefore === "" || textBefore === "\n") {
+              // Show block menu at cursor position
+              const coords = ed.view.coordsAtPos(from);
+              setBlockMenuPosition({ top: coords.bottom + 4, left: coords.left });
+              setShowBlockMenu(true);
+            }
+          }
+        };
+        ed.view.dom.addEventListener("keydown", handleKeyDown);
+
         ed.on("selectionUpdate", () => {
           const { from, to } = ed.state.selection;
           if (from === to) {
             setSelectedText("");
             return;
           }
-          const texto = ed.state.doc.textBetween(from, to);
-          if (texto.trim()) {
-            setSelectedText(texto);
-            onSelectRef.current?.(texto);
+
+          // Only fire onSelect if not actively dragging (debounced)
+          if (!isSelecting) {
+            const texto = ed.state.doc.textBetween(from, to);
+            if (texto.trim()) {
+              setSelectedText(texto);
+              // Debounce to avoid rapid fires during selection adjustments
+              if (selectionTimeout !== null) clearTimeout(selectionTimeout);
+              selectionTimeout = window.setTimeout(() => {
+                onSelectRef.current?.(texto);
+              }, 50);
+            }
           }
         });
+
+        // Cleanup
+        return () => {
+          ed.view.dom.removeEventListener("mousedown", handleMouseDown);
+          document.removeEventListener("mouseup", handleMouseUp);
+          ed.view.dom.removeEventListener("keydown", handleKeyDown);
+          if (selectionTimeout !== null) clearTimeout(selectionTimeout);
+        };
       },
     });
 
@@ -431,13 +536,20 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
       [editor]
     );
 
-    const addLink = useCallback(() => {
+    const addLink = useCallback(async () => {
       if (!editor) return;
-      const url = window.prompt("URL do link:", "https://");
+      const url = await prompt({
+        title: "Inserir link",
+        description: "Cole a URL do link que deseja inserir.",
+        defaultValue: "https://",
+        placeholder: "https://exemplo.com",
+        confirmLabel: "Inserir",
+      });
       if (url) {
         editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+        addToast("Link inserido", "success");
       }
-    }, [editor]);
+    }, [editor, prompt, addToast]);
 
     const transformTo = useCallback(
       (type: string, attrs?: any) => {
@@ -529,15 +641,6 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
                   <ChevronRight size={13} />
                 </button>
               </div>
-              {showTransformSubmenu && (
-                <TransformDropdown
-                  onPick={transformTo}
-                  onClose={() => {
-                    clearTransformTimer();
-                    setShowTransformSubmenu(false);
-                  }}
-                />
-              )}
             </div>
 
             <div className="cdp-bm-divider" />
@@ -676,7 +779,40 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(
             </div>
           </BubbleMenu>
         )}
+
+        {/* TransformDropdown rendered OUTSIDE BubbleMenu via portal */}
+        {showTransformSubmenu && transformWrapRef.current && createPortal(
+          <TransformDropdown
+            onPick={transformTo}
+            onClose={() => {
+              clearTransformTimer();
+              setShowTransformSubmenu(false);
+            }}
+            anchorRef={transformWrapRef}
+          />,
+          document.body
+        )}
+
+        {/* Block Menu (Painel A + Painel B) */}
+        {showBlockMenu && (
+          <BlockMenu
+            position={blockMenuPosition}
+            onSelect={(type, attrs) => {
+              if (type === "heading" && attrs?.level) {
+                editor?.chain().focus().setNode("heading", { level: attrs.level }).run();
+              } else if (type === "columns" && attrs?.count) {
+                console.log("Columns:", attrs.count);
+              } else {
+                editor?.chain().focus().setNode(type, attrs).run();
+              }
+              setShowBlockMenu(false);
+            }}
+            onClose={() => setShowBlockMenu(false)}
+          />
+        )}
+
         <EditorContent editor={editor} />
+        {PromptModal}
       </div>
     );
   }

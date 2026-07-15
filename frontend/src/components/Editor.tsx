@@ -13,6 +13,8 @@ import { marked } from "marked";
 import { Plus, Type, Heading1, Heading2, Heading3, List, ListOrdered, CheckSquare, Quote, Code, Minus } from "lucide-react";
 
 import { t } from "../i18n";
+import { usePrompt } from "./ui/PromptDialog";
+import { useToast } from "./ui/ConfirmDialog";
 
 // --- Custom extensions ---
 
@@ -47,6 +49,8 @@ interface EditorProps {
 
 export function Editor({ conteudo, onChange }: EditorProps) {
   const debounce = useRef<number | null>(null);
+  const { prompt, PromptModal } = usePrompt();
+  const { addToast } = useToast();
 
   const editor = useEditor({
     extensions: [
@@ -110,6 +114,7 @@ export function Editor({ conteudo, onChange }: EditorProps) {
       <div className="flex-1 overflow-auto">
         <EditorContent editor={editor} />
       </div>
+      {PromptModal}
     </div>
   );
 }
@@ -198,9 +203,17 @@ function BarraEditor({ editor }: { editor: any }) {
       <Btn
         label="🔗"
         title={t("editor.link")}
-        onClick={() => {
-          const url = window.prompt(t("editor.link"), "");
-          if (url) editor.chain().focus().setLink({ href: url }).run();
+        onClick={async () => {
+          const url = await prompt({
+            title: "Inserir link",
+            description: "Cole a URL do link que deseja inserir.",
+            placeholder: "https://exemplo.com",
+            confirmLabel: "Inserir",
+          });
+          if (url) {
+            editor.chain().focus().setLink({ href: url }).run();
+            addToast("Link inserido", "success");
+          }
         }}
         ativo={editor.isActive("link")}
       />

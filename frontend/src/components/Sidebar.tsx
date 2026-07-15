@@ -4,6 +4,8 @@ import { ChevronRight, Plus, MoreHorizontal, Trash2, Edit3 } from "lucide-react"
 
 import type { Pagina } from "../api/cliente";
 import { api } from "../api/cliente";
+import { useConfirm } from "./ui/ConfirmDialog";
+import { useToast } from "./ui/ConfirmDialog";
 
 export function Sidebar({
   arvore,
@@ -16,6 +18,9 @@ export function Sidebar({
   onExcluirPagina?: (paginaId: number) => void;
   onRefetch?: () => void;
 }) {
+  const { confirm, ConfirmModal } = useConfirm();
+  const { addToast } = useToast();
+
   if (!arvore.length) {
     return (
       <div className="px-2 py-4 text-center">
@@ -25,18 +30,21 @@ export function Sidebar({
     );
   }
   return (
-    <ul className="space-y-0.5">
-      {arvore.map((p) => (
-        <ItemArvore
-          key={p.id}
-          pagina={p}
-          profundidade={0}
-          onAddSubpagina={onAddSubpagina}
-          onExcluirPagina={onExcluirPagina}
-          onRefetch={onRefetch}
-        />
-      ))}
-    </ul>
+    <>
+      <ul className="space-y-0.5">
+        {arvore.map((p) => (
+          <ItemArvore
+            key={p.id}
+            pagina={p}
+            profundidade={0}
+            onAddSubpagina={onAddSubpagina}
+            onExcluirPagina={onExcluirPagina}
+            onRefetch={onRefetch}
+          />
+        ))}
+      </ul>
+      {ConfirmModal}
+    </>
   );
 }
 
@@ -261,10 +269,17 @@ function ItemArvore({
           </button>
           <hr className="border-[#3a3a3a] mx-2 my-1" />
           <button
-            onClick={() => {
+            onClick={async () => {
               setCtxMenu(null);
-              if (window.confirm(`Excluir "${titulo}"?`)) {
+              const confirmed = await confirm({
+                title: `Excluir "${titulo}"?`,
+                description: "Essa ação não poderá ser desfeita. A página e todo o seu conteúdo serão removidos permanentemente.",
+                confirmLabel: "Excluir",
+                variant: "destructive",
+              });
+              if (confirmed) {
                 onExcluirPagina?.(pagina.id);
+                addToast("Página excluída", "success");
               }
             }}
             className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#ef4444] hover:bg-[#3a1a1a] transition-colors"
