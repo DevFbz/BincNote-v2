@@ -1470,7 +1470,7 @@ export function NotionPageEditor({ pagina, onSave, onSaveConteudo }: NotionPageE
         </div>
 
         {/* ═══ RODAPÉ DO DOCUMENTO ═══ */}
-        <div
+        {/* <div
           onClick={() => {
             const b = createEmptyBlock();
             setBlocks([...blocks, b]);
@@ -1480,7 +1480,7 @@ export function NotionPageEditor({ pagina, onSave, onSaveConteudo }: NotionPageE
           className="notion-footer-line"
         >
           <span style={{ fontSize: 13 }}>Comece a digitar, arraste um arquivo aqui ou cole um link.</span>
-        </div>
+        </div> */}
       </div>
 
       {/* ═══ FLOATING MENU A (SLASH MENU) ═══ */}
@@ -1841,11 +1841,7 @@ function SlashMenu({ position, onSelect, onClose }: SlashMenuProps) {
             onMouseEnter={() => setHoveredItemId(opt.id)}
             onMouseLeave={() => setHoveredItemId(null)}
             onClick={() => {
-              if (opt.id === "paragraph") {
-                // Keep selected/trigger hover
-              } else {
-                onSelect(opt.id);
-              }
+              onSelect(opt.id);
             }}
           >
             {/* Icon */}
@@ -1882,32 +1878,20 @@ interface FormatToolbarProps {
 
 function FormatToolbar({ triggerText, onFormat }: FormatToolbarProps) {
   const [hovering, setHovering] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<number | null>(null);
 
-  const handleMouseEnter = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    setHovering(true);
+  const cancelClose = () => {
+    if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
+  };
 
-    if (triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      const leftSpace = rect.right + 10;
-      const isNearRight = rect.right > (window.innerWidth - 220);
-      setPosition({
-        top: rect.top,
-        left: isNearRight ? (rect.left - 200) : leftSpace,
-      });
-    }
+  const handleMouseEnter = () => {
+    cancelClose();
+    setHovering(true);
   };
 
   const handleMouseLeave = () => {
-    timerRef.current = window.setTimeout(() => {
-      setHovering(false);
-    }, 200);
+    timerRef.current = window.setTimeout(() => { setHovering(false); }, 150);
   };
 
   useEffect(() => {
@@ -1919,7 +1903,7 @@ function FormatToolbar({ triggerText, onFormat }: FormatToolbarProps) {
       ref={triggerRef}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      style={{ display: "flex", alignItems: "center", width: "100%", height: "100%" }}
+      style={{ display: "flex", alignItems: "center", width: "100%", height: "100%", position: "relative" }}
     >
       <span style={{ flex: 1, fontSize: 14 }}>{triggerText}</span>
       <ChevronRight size={14} color="#7A7A7A" />
@@ -1928,9 +1912,10 @@ function FormatToolbar({ triggerText, onFormat }: FormatToolbarProps) {
         <div
           className="notion-popover"
           style={{
-            position: "fixed",
-            left: position.left,
-            top: position.top,
+            position: "absolute",
+            left: "100%",
+            top: 0,
+            marginLeft: 6,
             width: 185,
             background: "#252525",
             borderRadius: 10,
@@ -2108,18 +2093,24 @@ function BubbleMenu({ position, selectedText, onFormat, onClose, activeBlockId, 
 
   const currentDetails = typeDetails[activeType] || typeDetails.paragraph;
 
-  const handleMouseEnter = () => {
+  const triggerRowRef = useRef<HTMLDivElement>(null);
+
+  const cancelClose = () => {
     if (timerRef.current) {
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+  };
+
+  const handleMouseEnter = () => {
+    cancelClose();
     setHoveringTrigger(true);
   };
 
   const handleMouseLeave = () => {
     timerRef.current = window.setTimeout(() => {
       setHoveringTrigger(false);
-    }, 300);
+    }, 180);
   };
 
   useEffect(() => {
@@ -2127,9 +2118,8 @@ function BubbleMenu({ position, selectedText, onFormat, onClose, activeBlockId, 
   }, []);
 
   const isNearRight = position.left > (window.innerWidth - 450);
-  const submenuStyle: React.CSSProperties = isNearRight
-    ? { position: "absolute", right: "100%", marginRight: 6, top: 0 }
-    : { position: "absolute", left: "100%", marginLeft: 6, top: 0 };
+  const submenuLeft = isNearRight ? undefined : "100%";
+  const submenuRight = isNearRight ? "100%" : undefined;
 
   return (
     <div
@@ -2147,13 +2137,15 @@ function BubbleMenu({ position, selectedText, onFormat, onClose, activeBlockId, 
         width: 190,
         border: "1px solid #3A3A3A",
       }}
-      onMouseLeave={handleMouseLeave}
     >
+      {/* Trigger row */}
       <div
+        ref={triggerRowRef}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        onClick={() => setHoveringTrigger(true)}
+        onClick={() => setHoveringTrigger(v => !v)}
         style={{
+          position: "relative",
           display: "flex",
           alignItems: "center",
           gap: 10,
@@ -2171,59 +2163,65 @@ function BubbleMenu({ position, selectedText, onFormat, onClose, activeBlockId, 
           {currentDetails.label}
         </span>
         <ChevronRight size={14} color="#7A7A7A" />
-      </div>
 
-      {hoveringTrigger && (
-        <div
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-          style={{
-            ...submenuStyle,
-            width: 220,
-            maxHeight: 320,
-            overflowY: "auto",
-            background: "#252525",
-            borderRadius: 10,
-            padding: 6,
-            boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
-            zIndex: 110,
-            border: "1px solid #3A3A3A",
-            display: "flex",
-            flexDirection: "column"
-          }}
-        >
-          {blockTypes.map(opt => (
-            <div
-              key={opt.id}
-              onClick={() => {
-                if (activeBlockId) {
-                  onTransformBlock(activeBlockId, opt.id as any);
-                }
-                setHoveringTrigger(false);
-                onClose();
-              }}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "0 10px",
-                height: 34,
-                borderRadius: 6,
-                cursor: "pointer",
-                background: activeType === opt.id ? "#373736" : "transparent",
-                color: activeType === opt.id ? "#FFFFFF" : "#D4D4D4",
-              }}
-              className="toolbar-row-hover"
-            >
-              <div style={{ width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.7 }}>
-                {opt.icon}
+        {/* Submenu rendered inside trigger so absolute positioning is relative to it */}
+        {hoveringTrigger && (
+          <div
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+            style={{
+              position: "absolute",
+              left: submenuLeft,
+              right: submenuRight,
+              top: 0,
+              marginLeft: submenuLeft ? 6 : undefined,
+              marginRight: submenuRight ? 6 : undefined,
+              width: 220,
+              maxHeight: 320,
+              overflowY: "auto",
+              background: "#252525",
+              borderRadius: 10,
+              padding: 6,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+              zIndex: 110,
+              border: "1px solid #3A3A3A",
+              display: "flex",
+              flexDirection: "column"
+            }}
+          >
+            {blockTypes.map(opt => (
+              <div
+                key={opt.id}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (activeBlockId) onTransformBlock(activeBlockId, opt.id as any);
+                  setHoveringTrigger(false);
+                  onClose();
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "0 10px",
+                  height: 34,
+                  borderRadius: 6,
+                  cursor: "pointer",
+                  background: activeType === opt.id ? "#373736" : "transparent",
+                  color: activeType === opt.id ? "#FFFFFF" : "#D4D4D4",
+                }}
+                className="toolbar-row-hover"
+              >
+                <div style={{ width: 18, height: 18, display: "flex", alignItems: "center", justifyContent: "center", opacity: 0.7 }}>
+                  {opt.icon}
+                </div>
+                <span style={{ flex: 1, fontSize: 13, textAlign: "left" }}>{opt.label}</span>
+                {activeType === opt.id && <Check size={14} color="#4F8CFF" />}
               </div>
-              <span style={{ flex: 1, fontSize: 13, textAlign: "left" }}>{opt.label}</span>
-              {activeType === opt.id && <Check size={14} color="#4F8CFF" />}
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       <div style={{ height: 1, background: "#3A3A3A", margin: "6px 8px" }} />
 
@@ -2368,12 +2366,14 @@ function ContextMenu({ position, onSelect, onClose }: ContextMenuProps) {
         onMouseLeave={() => setShowTransformSub(false)}
         style={{ position: "relative" }}
       >
-        <div className="notion-dropdown-item" style={{ display: "flex", justifyContent: "space-between" }}>
+        <div className="notion-dropdown-item" style={{ display: "flex", justifyContent: "space-between", background: showTransformSub ? "#373736" : undefined }}>
           <span>Transformar em</span>
           <ChevronRight size={14} />
         </div>
         {showTransformSub && (
           <div
+            onMouseEnter={() => setShowTransformSub(true)}
+            onMouseLeave={() => setShowTransformSub(false)}
             style={{
               position: "absolute",
               left: "100%",
@@ -2384,15 +2384,13 @@ function ContextMenu({ position, onSelect, onClose }: ContextMenuProps) {
               padding: "4px 0",
               minWidth: 150,
               boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
+              zIndex: 210,
             }}
           >
             {blockTypes.map(t => (
               <button
                 key={t.id}
-                onClick={() => {
-                  onSelect("transform", t.id);
-                  onClose();
-                }}
+                onMouseDown={(e) => { e.stopPropagation(); onSelect("transform", t.id); onClose(); }}
                 className="notion-dropdown-item"
               >
                 {t.label}
@@ -2408,12 +2406,14 @@ function ContextMenu({ position, onSelect, onClose }: ContextMenuProps) {
         onMouseLeave={() => setShowColorSub(false)}
         style={{ position: "relative" }}
       >
-        <div className="notion-dropdown-item" style={{ display: "flex", justifyContent: "space-between" }}>
+        <div className="notion-dropdown-item" style={{ display: "flex", justifyContent: "space-between", background: showColorSub ? "#373736" : undefined }}>
           <span>Colorir</span>
           <ChevronRight size={14} />
         </div>
         {showColorSub && (
           <div
+            onMouseEnter={() => setShowColorSub(true)}
+            onMouseLeave={() => setShowColorSub(false)}
             style={{
               position: "absolute",
               left: "100%",
@@ -2425,7 +2425,8 @@ function ContextMenu({ position, onSelect, onClose }: ContextMenuProps) {
               width: 220,
               boxShadow: "0 8px 24px rgba(0,0,0,0.5)",
               maxHeight: 300,
-              overflowY: "auto"
+              overflowY: "auto",
+              zIndex: 210,
             }}
           >
             <div style={{ fontSize: 11, fontWeight: 600, color: "#8A8A8A", marginBottom: 6 }}>COR DO TEXTO</div>
@@ -2433,7 +2434,7 @@ function ContextMenu({ position, onSelect, onClose }: ContextMenuProps) {
               {colors.map(c => (
                 <button
                   key={c}
-                  onClick={() => { onSelect("colorText", c); onClose(); }}
+                  onMouseDown={(e) => { e.stopPropagation(); onSelect("colorText", c); onClose(); }}
                   style={{
                     fontSize: 12,
                     background: "transparent",
@@ -2454,7 +2455,7 @@ function ContextMenu({ position, onSelect, onClose }: ContextMenuProps) {
               {colors.map(c => (
                 <button
                   key={c}
-                  onClick={() => { onSelect("colorBg", c); onClose(); }}
+                  onMouseDown={(e) => { e.stopPropagation(); onSelect("colorBg", c); onClose(); }}
                   style={{
                     fontSize: 11,
                     background: COLOR_BG_MAP[c],

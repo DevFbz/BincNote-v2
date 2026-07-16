@@ -992,6 +992,19 @@ body {
   pointer-events: none;
 }
 
+/* ── Block content text (NotionPageEditor) ── */
+.block-content-text {
+  outline: none;
+}
+.block-content-text:empty::before {
+  content: attr(data-placeholder);
+  color: #555;
+  pointer-events: none;
+}
+.block-content-text:not(:focus):empty::before {
+  content: "";
+}
+
 /* ── Block wrapper ── */
 .blk-wrapper {
   display: flex;
@@ -1131,6 +1144,10 @@ body {
   content: attr(data-placeholder);
   color: #555;
   pointer-events: none;
+}
+/* Only show placeholder when focused */
+.blk-input:not(:focus):empty::before {
+  content: "";
 }
 
 .blk-input-heading1 {
