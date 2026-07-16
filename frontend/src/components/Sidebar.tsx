@@ -40,6 +40,8 @@ export function Sidebar({
             onAddSubpagina={onAddSubpagina}
             onExcluirPagina={onExcluirPagina}
             onRefetch={onRefetch}
+            confirm={confirm}
+            addToast={addToast}
           />
         ))}
       </ul>
@@ -54,12 +56,16 @@ function ItemArvore({
   onAddSubpagina,
   onExcluirPagina,
   onRefetch,
+  confirm,
+  addToast,
 }: {
   pagina: Pagina;
   profundidade: number;
   onAddSubpagina?: (parentId: number) => void;
   onExcluirPagina?: (paginaId: number) => void;
   onRefetch?: () => void;
+  confirm: (opts: any) => Promise<boolean>;
+  addToast: (msg: string, type?: "success" | "error" | "info") => void;
 }) {
   const titulo = pagina.titulo || "Sem título";
   const temFilhos = pagina.children && pagina.children.length > 0;
@@ -302,6 +308,8 @@ function ItemArvore({
               onAddSubpagina={onAddSubpagina}
               onExcluirPagina={onExcluirPagina}
               onRefetch={onRefetch}
+              confirm={confirm}
+              addToast={addToast}
             />
           ))}
         </ul>

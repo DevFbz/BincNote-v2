@@ -110,7 +110,7 @@ export function Editor({ conteudo, onChange }: EditorProps) {
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {editor && <BarraEditor editor={editor} />}
+      {editor && <BarraEditor editor={editor} prompt={prompt} addToast={addToast} />}
       <div className="flex-1 overflow-auto">
         <EditorContent editor={editor} />
       </div>
@@ -119,7 +119,7 @@ export function Editor({ conteudo, onChange }: EditorProps) {
   );
 }
 
-function BarraEditor({ editor }: { editor: any }) {
+function BarraEditor({ editor, prompt, addToast }: { editor: any; prompt: (opts: any) => Promise<string | null>; addToast: (msg: string, type?: "success" | "error" | "info") => void }) {
   const [abrirAdd, setAbrirAdd] = useState(false);
   if (!editor) return null;
   return (

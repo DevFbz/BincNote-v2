@@ -285,7 +285,7 @@ export function BlockMenu({
   onClose,
   position,
 }: {
-  onSelect: (type: string) => void;
+  onSelect: (type: string, attrs?: any) => void;
   onClose: () => void;
   position: { top: number; left: number };
 }) {

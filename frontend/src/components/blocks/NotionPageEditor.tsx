@@ -82,7 +82,7 @@ interface PageData {
   titulo: string;
   icone: string;
   capa: string;
-  parent?: number;
+  parent?: number | null;
   kind: "document" | "database";
   conteudo: any;
 }

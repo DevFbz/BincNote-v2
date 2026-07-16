@@ -89,6 +89,12 @@ export function PaginaView({ id }: { id: number }) {
   const { confirm, ConfirmModal } = useConfirm();
   const { addToast } = useToast();
 
+  // Check if this is a new page (no content yet)
+  const isNewPage = !pagina?.conteudo || (pagina.conteudo as any)?.content?.length === 0;
+
+  // Ref for block editor (used by AI chat panel)
+  const blockEditorRef = useRef<{ setContent: (content: any, emitUpdate?: boolean) => void } | null>(null);
+
   // Card open/close → update chat context (tag ambiente)
   const handleCardChange = useCallback((card: { id: number; title: string } | null) => {
     if (card) {
